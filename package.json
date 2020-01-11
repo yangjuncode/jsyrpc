@@ -1,0 +1,16 @@
+{
+  "name": "jsyrpc",
+  "version": "1.0.0",
+  "description": "js lib for yrpc",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "repository": "git@github.com:yangjuncode/jsyrpc.git",
+  "author": "yangjun <290968698@qq.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@types/pako": "^1.0.1",
+    "ee-ts": "^1.0.1",
+    "pako": "^1.0.10",
+    "ypubsub": "^1.0.2"
+  }
+}
