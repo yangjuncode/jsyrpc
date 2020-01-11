@@ -9,8 +9,8 @@
   "license": "MIT",
   "dependencies": {
     "@types/pako": "^1.0.1",
-    "ee-ts": "^1.0.1",
     "pako": "^1.0.10",
+    "protobufjs": "^6.8.8",
     "ypubsub": "^1.0.2"
   }
 }

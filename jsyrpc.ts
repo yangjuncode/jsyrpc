@@ -29,12 +29,12 @@ export interface ICancel {
 export class TCallOption {
   //timeout in seconds
   timeout: number = 30
-  OnResult: IResult
-  OnServerErr: IServerErr
-  OnLocalErr: ILocalErr
-  OnPong: IPong
-  OnTimeout: Function
-  OnCancel: ICancel
+  OnResult?: IResult
+  OnServerErr?: IServerErr
+  OnLocalErr?: ILocalErr
+  OnPong?: IPong
+  OnTimeout?: Function
+  OnCancel?: ICancel
 
 }
 
@@ -45,7 +45,7 @@ export class TRpcStream {
   cid: number
   resType: any
   private newNo: number = 0
-  LastSendTime: number
+  LastSendTime: number = Date.now()
   LastRecvTime: number = Date.now()
   private intervalTmrId: number = -1
 
@@ -210,8 +210,8 @@ export class TRpcStream {
 }
 
 export class TrpcCon {
-  Sid: Uint8Array
-  wsUrl: string
+  Sid: Uint8Array = new Uint8Array()
+  wsUrl: string = ""
   wsCon: WebSocket | null = null
   LastRecvTime: number = -1
   LastSendTime: number = -1
@@ -478,9 +478,7 @@ export class TrpcCon {
     }
 
     if (!sendOk) {
-      if (!callOpt.OnLocalErr) {
-        callOpt.OnLocalErr("can not send to socket")
-      }
+      callOpt?.OnLocalErr?.("can not send to socket")
       return
     }
     if (callOpt.timeout <= 0) {
@@ -488,9 +486,7 @@ export class TrpcCon {
     }
     let timeoutId: number = window.setTimeout(() => {
       ypubsub.unsubscribeInt(rpc.cid)
-      if (!callOpt.OnTimeout) {
-        callOpt.OnTimeout()
-      }
+      callOpt?.OnTimeout?.()
     }, callOpt.timeout * 1000)
 
 
@@ -498,14 +494,10 @@ export class TrpcCon {
       switch (resRpc.cmd) {
         case 2:
           let res = resType.decode(resRpc.body)
-          if (!callOpt.OnResult) {
-            callOpt.OnResult(res, resRpc)
-          }
-          break
+          callOpt?.OnResult?.(res, resRpc)
+          break;
         case 4:
-          if (!callOpt.OnServerErr) {
-            callOpt.OnServerErr(resRpc)
-          }
+          callOpt?.OnServerErr?.(resRpc)
           break
         default:
           console.log("unary call bad:res:", resRpc);
