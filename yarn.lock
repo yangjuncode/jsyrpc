@@ -103,3 +103,10 @@ ypubsub@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/ypubsub/-/ypubsub-1.0.2.tgz#e74e27a7f88e90b03920c830d140b48e6996daa2"
   integrity sha512-4xY7CqAyhu4EjxPQDhxK2NBecFu0gm7BXa+4WoQdjwRcpumaaFVU1uttWIk5+kuJATjvXpzuj/ityPxEeiDaAA==
+
+yrpcmsg@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/yrpcmsg/-/yrpcmsg-1.0.0.tgz#ad304cea6ede85506dc067fa95cb14e3885711cc"
+  integrity sha512-J1aT+Cdjb2DZydaBVIrjgSdbq2cAAJ2JoYNXChYVCS8lQlYA+sdsvzuj6MFXGm9EMrH0jpEyCLWhcFJDysg8Zg==
+  dependencies:
+    protobufjs "^6.8.8"

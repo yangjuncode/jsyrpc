@@ -2,15 +2,21 @@
   "name": "jsyrpc",
   "version": "1.0.0",
   "description": "js lib for yrpc",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/jsyrpc.js",
+  "types": "dist/jsyrpc.d.ts",
   "repository": "git@github.com:yangjuncode/jsyrpc.git",
   "author": "yangjun <290968698@qq.com>",
   "license": "MIT",
   "dependencies": {
-    "@types/pako": "^1.0.1",
     "pako": "^1.0.10",
     "protobufjs": "^6.8.8",
-    "ypubsub": "^1.0.2"
+    "ypubsub": "^1.0.2",
+    "yrpcmsg": "^1.0.0"
+  },
+  "scripts": {
+    "build": "tsc "
+  },
+  "devDependencies": {
+    "@types/pako": "^1.0.1"
   }
 }
