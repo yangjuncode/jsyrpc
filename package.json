@@ -14,8 +14,7 @@
     "yrpcmsg": "^1.0.3"
   },
   "scripts": {
-    "build": "tsc ",
-    "publish": "yarn publish"
+    "build": "tsc "
   },
   "devDependencies": {
     "@types/pako": "^1.0.1"
