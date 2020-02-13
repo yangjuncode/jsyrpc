@@ -1,4 +1,4 @@
-import {yrpc} from 'yrpcmsg'
+import {yrpcmsg} from 'yrpcmsg'
 
 import pako from 'pako'
 import ypubsub from 'ypubsub';
@@ -38,12 +38,12 @@ function delCallbackFromMap(key: string, callBack: Function, _map: Map<string, F
 
 
 export interface IResult {
-  (res: any, rpcCmd: yrpc.Ymsg): void
+  (res: any, rpcCmd: yrpcmsg.Ymsg): void
 }
 
 //remote
 export interface IServerErr {
-  (errRpc: yrpc.Ymsg): void
+  (errRpc: yrpcmsg.Ymsg): void
 }
 
 export interface ILocalErr {
@@ -51,11 +51,11 @@ export interface ILocalErr {
 }
 
 export interface IPong {
-  (rpcCmd: yrpc.Ymsg): void
+  (rpcCmd: yrpcmsg.Ymsg): void
 }
 
 export interface ICancel {
-  (rpcCmd: yrpc.Ymsg): void
+  (rpcCmd: yrpcmsg.Ymsg): void
 }
 
 export class TCallOption {
@@ -112,7 +112,7 @@ export class TRpcStream {
 
 
   sendFirst(reqData: Uint8Array) {
-    let rpc = new yrpc.Ymsg()
+    let rpc = new yrpcmsg.Ymsg()
     if (this.apiVerion > 0) {
       rpc.cmd = 1 | (this.apiVerion << 24)
 
@@ -135,7 +135,7 @@ export class TRpcStream {
 
   //return rpc no,if <0: not send to socket
   sendNext(reqData: Uint8Array): number {
-    let rpc = new yrpc.Ymsg()
+    let rpc = new yrpcmsg.Ymsg()
     if (this.apiVerion > 0) {
       rpc.cmd = 7 | (this.apiVerion << 24)
 
@@ -158,7 +158,7 @@ export class TRpcStream {
 
   //client stream finish
   sendFinish() {
-    let rpc = new yrpc.Ymsg()
+    let rpc = new yrpcmsg.Ymsg()
     rpc.cmd = 9
     rpc.sid = rpcCon.Sid
     rpc.cid = this.cid
@@ -170,7 +170,7 @@ export class TRpcStream {
 
   //cancel the rpc call
   cancel() {
-    let rpc = new yrpc.Ymsg()
+    let rpc = new yrpcmsg.Ymsg()
     rpc.cmd = 44
     rpc.sid = rpcCon.Sid
     rpc.cid = this.cid
@@ -183,7 +183,7 @@ export class TRpcStream {
 
   //ping
   ping() {
-    let rpc = new yrpc.Ymsg()
+    let rpc = new yrpcmsg.Ymsg()
     rpc.cmd = 3
     rpc.sid = rpcCon.Sid
     rpc.cid = rpcCon.NewCid()
@@ -194,7 +194,7 @@ export class TRpcStream {
     }
   }
 
-  onRpc(rpc: yrpc.Ymsg) {
+  onRpc(rpc: yrpcmsg.Ymsg) {
     this.LastRecvTime = rpcCon.LastRecvTime
     let res: any = null
     switch (rpc.cmd) {
@@ -291,8 +291,8 @@ export class TrpcCon {
     return true
   }
 
-  sendRpc(rpc: yrpc.Ymsg): boolean {
-    let w = yrpc.Ymsg.encode(rpc)
+  sendRpc(rpc: yrpcmsg.Ymsg): boolean {
+    let w = yrpcmsg.Ymsg.encode(rpc)
     let rpcData = w.finish()
     return this.sendRpcData(rpcData)
   }
@@ -300,7 +300,7 @@ export class TrpcCon {
   onWsMsg(ev: MessageEvent): void {
     this.LastRecvTime = Date.now()
     let rpcData = new Uint8Array(ev.data)
-    let rpc = yrpc.Ymsg.decode(rpcData)
+    let rpc = yrpcmsg.Ymsg.decode(rpcData)
 
     if (rpc.body.length > 0) {
       let zipType = rpc.cmd & 0x000f0000
@@ -364,19 +364,19 @@ export class TrpcCon {
 
 
   //return cid in rpccmd, <0: not send
-  NatsPublish(subject: string, data: Uint8Array, natsOpt?: yrpc.NatsOption): number {
+  NatsPublish(subject: string, data: Uint8Array, natsOpt?: yrpcmsg.NatsOption): number {
     if (!this.isWsConnected()) {
       return -1
     }
 
-    let rpc = new yrpc.Ymsg()
+    let rpc = new yrpcmsg.Ymsg()
     rpc.cmd = 11
     rpc.cid = this.NewCid()
     rpc.optstr = subject
     rpc.body = data
 
     if (natsOpt) {
-      let w = yrpc.NatsOption.encode(natsOpt)
+      let w = yrpcmsg.NatsOption.encode(natsOpt)
       rpc.optbin = w.finish()
     }
     this.sendRpc(rpc)
@@ -391,7 +391,7 @@ export class TrpcCon {
     if (hasExist) {
       return true
     }
-    let rpc = new yrpc.Ymsg()
+    let rpc = new yrpcmsg.Ymsg()
     rpc.cmd = 12
     rpc.res = 1
     rpc.cid = this.NewCid()
@@ -411,7 +411,7 @@ export class TrpcCon {
     if (hasExist) {
       return true
     }
-    let rpc = new yrpc.Ymsg()
+    let rpc = new yrpcmsg.Ymsg()
     rpc.cmd = 12
     rpc.res = 1
     rpc.cid = this.NewCid()
@@ -423,7 +423,7 @@ export class TrpcCon {
   }
 
   NatsUnsubsribe(subject: string, FnMsg?: Function) {
-    let rpc = new yrpc.Ymsg()
+    let rpc = new yrpcmsg.Ymsg()
     rpc.cmd = 12
     rpc.res = 2
     rpc.cid = this.NewCid()
@@ -464,14 +464,14 @@ export class TrpcCon {
   }
 
   ping(): void {
-    let rpc = new yrpc.Ymsg()
+    let rpc = new yrpcmsg.Ymsg()
     rpc.cmd = 3
     this.sendRpc(rpc)
 
   }
 
   NocareCall(reqData: Uint8Array, api: string, v: number): void {
-    let rpc = new yrpc.Ymsg()
+    let rpc = new yrpcmsg.Ymsg()
     if (v > 0) {
       rpc.cmd = 10 | (v << 24)
 
@@ -485,7 +485,7 @@ export class TrpcCon {
   }
 
   UnaryCall(reqData: Uint8Array, api: string, v: number, resType: any, callOpt?: TCallOption) {
-    let rpc = new yrpc.Ymsg()
+    let rpc = new yrpcmsg.Ymsg()
 
     if (v > 0) {
       rpc.cmd = 1 | (v << 24)
@@ -517,7 +517,7 @@ export class TrpcCon {
     }, callOpt.timeout * 1000)
 
 
-    ypubsub.subscribeOnceInt(rpc.cid, function (resRpc: yrpc.Ymsg) {
+    ypubsub.subscribeOnceInt(rpc.cid, function (resRpc: yrpcmsg.Ymsg) {
       switch (resRpc.cmd) {
         case 2:
           let res = resType.decode(resRpc.body)
