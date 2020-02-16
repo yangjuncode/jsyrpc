@@ -104,9 +104,9 @@ ypubsub@^1.0.2:
   resolved "https://registry.yarnpkg.com/ypubsub/-/ypubsub-1.0.2.tgz#e74e27a7f88e90b03920c830d140b48e6996daa2"
   integrity sha512-4xY7CqAyhu4EjxPQDhxK2NBecFu0gm7BXa+4WoQdjwRcpumaaFVU1uttWIk5+kuJATjvXpzuj/ityPxEeiDaAA==
 
-yrpcmsg@^1.0.5:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/yrpcmsg/-/yrpcmsg-1.0.5.tgz#db22b39134c940c87b6452d6d7007dcdbe35e530"
-  integrity sha512-HMaUxpOgrGjHAOQNIoNsy9MaEogK8sj30qYrG/CVxIDQg93U2U8j5P91GeXazAxa9qjA6+kEU1mrl//A70b8/g==
+yrpcmsg@^1.1.2:
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/yrpcmsg/-/yrpcmsg-1.1.2.tgz#f5eebe3f382c9a9553ca9a527ad0b325bc3944cf"
+  integrity sha512-Zg0+H9Tjbtoe781r6pWUxPIrVlLHYmw0vfHNsOpvB9KTuDN20S7YhURXtxcjXaLb5FMdUEBDyvEo+GcAp6W/7Q==
   dependencies:
     protobufjs "^6.8.8"
