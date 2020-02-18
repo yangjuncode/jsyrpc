@@ -43,7 +43,7 @@ function delCallbackFromMap(key: string, callBack: Function, _map: Map<string, F
 
 
 export interface IResult {
-  (res: any, rpcCmd: yrpcmsg.Ymsg, meta: IGrpcMeta): void
+  (res: any, rpcCmd: yrpcmsg.Ymsg, meta?: IGrpcMeta): void
 }
 
 export interface IFinished {
@@ -208,24 +208,21 @@ export class TRpcStream {
     let res: any = null
     switch (rpc.Cmd) {
       case 3:
-        //client stream call send ok
+        //client stream call send first ok
         break
       case 4:
         //stream call got err
         this.clearCall()
-
-        if (this.callOpt.OnServerErr) {
-          this.callOpt.OnServerErr(rpc)
-        }
+        this.callOpt.OnServerErr?.(rpc)
         break
       case 5:
         //got client stream send response
         break
       case 7:
-        //server stream call send ok
+        //server stream call send first ok
         break
       case 8:
-        //bidi stream call send ok
+        //bidi stream call send first ok
         break
       case 12:
         //got reply from server
@@ -537,8 +534,13 @@ export class TrpcCon {
       switch (rpc.Cmd) {
         case 1:
           let res = resType.decode(rpc.Body)
-          let grpcmeta = GrpcMeta.decode(rpc.Optbin)
-          callOpt?.OnResult?.(res, resRpc, grpcmeta)
+          if (rpc.Optbin.length > 0) {
+            let grpcmeta = GrpcMeta.decode(rpc.Optbin)
+            callOpt?.OnResult?.(res, resRpc, grpcmeta)
+          } else {
+            callOpt?.OnResult?.(res, resRpc)
+          }
+
           break;
         case 4:
           callOpt?.OnServerErr?.(resRpc)
