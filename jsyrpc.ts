@@ -269,10 +269,10 @@ export class TrpcCon {
     this.wsCon = new WebSocket(url)
     this.wsUrl = url
 
-    this.wsCon.onmessage = this.onWsMsg
-    this.wsCon.onclose = this.onWsClose
-    this.wsCon.onerror = this.onWsErr
-    this.wsCon.onopen = this.onWsOpen
+    this.wsCon.onmessage = this.onWsMsg.bind(this)
+    this.wsCon.onclose = this.onWsClose.bind(this)
+    this.wsCon.onerror = this.onWsErr.bind(this)
+    this.wsCon.onopen = this.onWsOpen.bind(this)
 
   }
 
