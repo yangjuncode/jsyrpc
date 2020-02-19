@@ -17,6 +17,7 @@
     "build": "tsc "
   },
   "devDependencies": {
-    "@types/pako": "^1.0.1"
+    "@types/pako": "^1.0.1",
+    "typescript": "^3.7.5"
   }
 }
