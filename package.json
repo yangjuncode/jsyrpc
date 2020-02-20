@@ -1,6 +1,6 @@
 {
   "name": "jsyrpc",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "description": "js lib for yrpc",
   "main": "dist/jsyrpc.js",
   "types": "dist/jsyrpc.d.ts",
@@ -17,6 +17,7 @@
     "build": "tsc "
   },
   "devDependencies": {
-    "@types/pako": "^1.0.1"
+    "@types/pako": "^1.0.1",
+    "typescript": "^3.7.5"
   }
 }
