@@ -253,7 +253,6 @@ export class TrpcCon {
   wsCon: WebSocket | null = null
   LastRecvTime: number = -1
   LastSendTime: number = -1
-  private wsReconnectTmrId: number = -1
   private cid: number = 0
 
   OnceSubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
@@ -355,13 +354,12 @@ export class TrpcCon {
     this.wsCon = null
     console.log("ws closed:", ev)
 
-    this.wsReconnectTmrId = window.setInterval(() => {
+    window.setTimeout(() => {
       if (this.isWsConnected()) {
-        clearInterval(this.wsReconnectTmrId)
         return
       }
       this.initWsCon(this.wsUrl)
-    }, 5000)
+    }, 3000)
   }
 
   onWsOpen(ev: Event) {
