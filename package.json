@@ -1,6 +1,6 @@
 {
   "name": "jsyrpc",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "js lib for yrpc",
   "main": "dist/jsyrpc.js",
   "types": "dist/jsyrpc.d.ts",
