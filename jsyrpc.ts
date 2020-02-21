@@ -489,17 +489,17 @@ export class TrpcCon {
 
   }
 
-  NocareCall(reqData: Uint8Array, api: string, v: number, callOpt?: TCallOption): void {
+  NocareCall(reqData: Uint8Array, api: string, v: number, callOpt?: TCallOption): boolean {
     let rpc = new yrpcmsg.Ymsg()
     rpc.Cmd = 2
     rpc.Body = reqData
     rpc.Optstr = api
     rpc.MetaInfo = callOpt?.rpcMeta
 
-    this.sendRpc(rpc)
+    return this.sendRpc(rpc)
   }
 
-  UnaryCall(reqData: Uint8Array, api: string, v: number, resType: any, callOpt?: TCallOption) {
+  UnaryCall(reqData: Uint8Array, api: string, v: number, resType: any, callOpt?: TCallOption): boolean {
     let rpc = new yrpcmsg.Ymsg()
 
     rpc.Cmd = 1
@@ -512,12 +512,12 @@ export class TrpcCon {
     let sendOk = this.sendRpc(rpc)
 
     if (!callOpt) {
-      return
+      return sendOk
     }
 
     if (!sendOk) {
       callOpt?.OnLocalErr?.("can not send to socket")
-      return
+      return sendOk
     }
     if (callOpt.timeout <= 0) {
       callOpt.timeout = 30
@@ -548,6 +548,8 @@ export class TrpcCon {
       }
       clearTimeout(timeoutId)
     })
+
+    return sendOk
 
   }
 
