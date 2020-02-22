@@ -124,8 +124,7 @@ export class TRpcStream {
   }
 
   reqEncode(req: any): Uint8Array {
-    let w: Writer = this.reqType.encode(req)
-    let reqData = w.finish()
+    let w: Writer = this.reqType.encode(req), reqData = w.finish();
     return reqData
   }
 
@@ -277,6 +276,7 @@ export class TrpcCon {
     }
 
     this.wsCon = new WebSocket(url)
+    this.wsCon.binaryType='arraybuffer'
     this.wsUrl = url
 
     this.wsCon.onmessage = this.onWsMsg.bind(this)
@@ -375,6 +375,7 @@ export class TrpcCon {
 
   onWsOpen(ev: Event) {
     console.log("ws open:", ev);
+    this.ping()
   }
 
 
