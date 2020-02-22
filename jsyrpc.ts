@@ -291,14 +291,14 @@ export class TrpcCon {
     if (!this.wsCon) {
       return false
     }
-    return this.wsCon.readyState === 2
+    return this.wsCon.readyState === WebSocket.OPEN
   }
 
   sendRpcData(rpcData: Uint8Array): boolean {
     if (!this.wsCon) {
       return false
     }
-    if (this.wsCon.readyState !== 2) {
+    if (this.wsCon.readyState !== WebSocket.OPEN) {
       return false
     }
 
