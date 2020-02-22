@@ -7,6 +7,7 @@ import IGrpcMeta = yrpcmsg.IGrpcMeta;
 import Meta = yrpcmsg.Meta;
 import GrpcMeta = yrpcmsg.GrpcMeta;
 import UnixTime = yrpcmsg.UnixTime;
+import {Writer} from 'protobufjs';
 
 function isCallbackInMap(key: string, callBack: Function, _map: Map<string, Function[]>): boolean {
   let mapItem = _map.get(key)
@@ -86,6 +87,7 @@ export class TRpcStream {
   api: string
   apiVerion: number
   cid: number
+  reqType: any
   resType: any
   metaInfo?: IMeta
 
@@ -97,10 +99,11 @@ export class TRpcStream {
   private intervalTmrId: number = -1
 
   //streamType 3:client 7:server 8:bidi
-  constructor(api: string, v: number, streamType: number, resType: any, callOpt?: TCallOption) {
+  constructor(api: string, v: number, streamType: number, reqType: any, resType: any, callOpt?: TCallOption) {
     this.api = api
     this.apiVerion = v
     this.streamType = streamType
+    this.reqType = reqType
     this.resType = resType
     this.metaInfo = callOpt?.rpcMeta
     this.cid = rpcCon.NewCid()
@@ -120,6 +123,12 @@ export class TRpcStream {
     }, 5000)
   }
 
+  reqEncode(req: any): Uint8Array {
+    let w: Writer = this.reqType.encode(req)
+    let reqData = w.finish()
+    return reqData
+  }
+
   clearCall() {
     ypubsub.unsubscribeInt(this.cid)
     if (this.intervalTmrId >= 0) {
@@ -129,7 +138,8 @@ export class TRpcStream {
   }
 
 
-  sendFirst(reqData: Uint8Array) {
+  sendFirst(req: any) {
+    let reqData = this.reqEncode(req)
     let rpc = new yrpcmsg.Ymsg()
     rpc.Cmd = this.streamType
     rpc.Body = reqData
@@ -148,7 +158,8 @@ export class TRpcStream {
   }
 
   //return rpc no,if <0: not send to socket
-  sendNext(reqData: Uint8Array): number {
+  sendNext(req: any): number {
+    let reqData = this.reqEncode(req)
     let rpc = new yrpcmsg.Ymsg()
     rpc.Cmd = 5
     rpc.Body = reqData
