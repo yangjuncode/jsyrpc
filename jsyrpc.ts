@@ -276,7 +276,7 @@ export class TrpcCon {
     }
 
     this.wsCon = new WebSocket(url)
-    this.wsCon.binaryType='arraybuffer'
+    this.wsCon.binaryType = 'arraybuffer'
     this.wsUrl = url
 
     this.wsCon.onmessage = this.onWsMsg.bind(this)
@@ -342,17 +342,65 @@ export class TrpcCon {
 
     rpc.Cmd = rpc.Cmd & 0xffff
     switch (rpc.Cmd) {
-        // publish response
+      case 1:
+        //unary call response
+        ypubsub.publishInt(rpc.Cid, rpc)
+        break
+      case 3:
+        //client stream call setup respone
+        ypubsub.publishInt(rpc.Cid, rpc)
+        break
+      case 4:
+        //server err
+        ypubsub.publishInt(rpc.Cid, rpc)
+        break
+      case 5:
+        //send next response
+        ypubsub.publishInt(rpc.Cid, rpc)
+        break
+      case 6:
+        //send close response
+        ypubsub.publishInt(rpc.Cid, rpc)
+        break
+      case 7:
+        //server stream call response
+        ypubsub.publishInt(rpc.Cid, rpc)
+        break
+      case 8:
+        //bidi stream call setup response
+        ypubsub.publishInt(rpc.Cid, rpc)
+        break
+      case 9:
+        //nats publish response
+        //fixme nats publish response
+        break
+      case 10:
+        //nats sub/unsub response
+        //fixme sub/unsub response
+        break
       case 11:
+        //got nats msg
+        //fixme got nats msg
         break
 
-        // sub/unsub response
       case 12:
+        //got server stream reply
+        //fixme server stream reply
         break
 
-        // nats recv msg
       case 13:
+        //server stream finished
+        //fixme server stream finished
         break
+      case 14:
+        if (rpc.Res == 1) {
+          //ping response
+          ypubsub.publishInt(rpc.Cid, rpc)
+        } else {
+          //respone server ping
+          this.onping(rpc)
+        }
+
     }
 
   }
@@ -501,6 +549,11 @@ export class TrpcCon {
 
   }
 
+  onping(rpc: yrpcmsg.Ymsg) {
+    rpc.Res = 1
+    this.sendRpc(rpc)
+  }
+
   NocareCall(reqData: Uint8Array, api: string, v: number, callOpt?: TCallOption): boolean {
     let rpc = new yrpcmsg.Ymsg()
     rpc.Cmd = 2
@@ -541,11 +594,11 @@ export class TrpcCon {
 
 
     ypubsub.subscribeOnceInt(rpc.Cid, function (resRpc: yrpcmsg.Ymsg) {
-      switch (rpc.Cmd) {
+      switch (resRpc.Cmd) {
         case 1:
-          let res = resType.decode(rpc.Body)
-          if (rpc.Optbin.length > 0) {
-            let grpcmeta = GrpcMeta.decode(rpc.Optbin)
+          let res = resType.decode(resRpc.Body)
+          if (resRpc.Optbin.length > 0) {
+            let grpcmeta = GrpcMeta.decode(resRpc.Optbin)
             callOpt?.OnResult?.(res, resRpc, grpcmeta)
           } else {
             callOpt?.OnResult?.(res, resRpc)
