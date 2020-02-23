@@ -2,12 +2,11 @@ import {yrpcmsg} from 'yrpcmsg'
 
 import pako from 'pako'
 import ypubsub from 'ypubsub';
+import {Writer} from 'protobufjs';
 import IMeta = yrpcmsg.IMeta;
 import IGrpcMeta = yrpcmsg.IGrpcMeta;
-import Meta = yrpcmsg.Meta;
 import GrpcMeta = yrpcmsg.GrpcMeta;
 import UnixTime = yrpcmsg.UnixTime;
-import {Writer} from 'protobufjs';
 
 function isCallbackInMap(key: string, callBack: Function, _map: Map<string, Function[]>): boolean {
   let mapItem = _map.get(key)
@@ -67,18 +66,33 @@ export interface IPong {
 export interface ICancel {
   (rpcCmd: yrpcmsg.Ymsg): void
 }
+export interface IGrpcHeader {
+  (rpcCmd: yrpcmsg.Ymsg): void
+}
 
 export class TCallOption {
   //timeout in seconds
   timeout: number = 30
+
+  //grpc meta, see yrpcmsg.metainfo
   rpcMeta?: IMeta
+  //when got reply for server,call this fn
   OnResult?: IResult
+  //when got call err, call this fn
   OnServerErr?: IServerErr
   OnLocalErr?: ILocalErr
+  //stream ping got pong response
   OnPong?: IPong
+  //on call timeout
   OnTimeout?: Function
+  //on call got cancel response from server
   OnCancel?: ICancel
+  //when got grpc header
+  OnGrpcHeader?:IGrpcHeader
+  //when got stream finished response, call this fn
   OnStreamFinished?: IFinished
+  //流式调用已经建立（收到了回应)
+  OnStreamStarted?: Function
 
 }
 
@@ -90,6 +104,9 @@ export class TRpcStream {
   reqType: any
   resType: any
   metaInfo?: IMeta
+
+  //是否已经收到stream调用的回应
+  StreamSetupOK: boolean = false
 
   //streamType 1:client 2:server 3:bidi
   streamType: number
@@ -118,14 +135,14 @@ export class TRpcStream {
     }
     this.callOpt = callOpt
 
-    setInterval(() => {
+    this.intervalTmrId = window.setInterval(() => {
       this.intervalCheck()
     }, 5000)
   }
 
   reqEncode(req: any): Uint8Array {
-    let w: Writer = this.reqType.encode(req), reqData = w.finish();
-    return reqData
+    let w: Writer = this.reqType.encode(req);
+    return w.finish()
   }
 
   clearCall() {
@@ -149,14 +166,12 @@ export class TRpcStream {
     rpc.MetaInfo = this.metaInfo
     this.newNo = 1
 
-    let sendOk = rpcCon.sendRpc(rpc)
-    if (sendOk) {
-      this.LastSendTime = Date.now()
-    }
+    this.sendMsg(rpc)
 
   }
 
   //return rpc no,if <0: not send to socket
+  //一般要在流式调用建立OK后才能继续发送
   sendNext(req: any): number {
     let reqData = this.reqEncode(req)
     let rpc = new yrpcmsg.Ymsg()
@@ -167,11 +182,10 @@ export class TRpcStream {
     rpc.No = this.newNo
     ++this.newNo
 
-    if (!rpcCon.sendRpc(rpc)) {
+    if (!this.sendMsg(rpc)) {
       return -1
-    } else {
-      this.LastSendTime = Date.now()
     }
+
     return rpc.No
   }
 
@@ -181,10 +195,7 @@ export class TRpcStream {
     rpc.Cmd = 6
     rpc.Sid = rpcCon.Sid
     rpc.Cid = this.cid
-    let sendOk = rpcCon.sendRpc(rpc)
-    if (sendOk) {
-      this.LastSendTime = Date.now()
-    }
+    this.sendMsg(rpc)
   }
 
   //cancel the rpc call
@@ -193,32 +204,38 @@ export class TRpcStream {
     rpc.Cmd = 4
     rpc.Sid = rpcCon.Sid
     rpc.Cid = this.cid
-    let sendOk = rpcCon.sendRpc(rpc)
-    if (sendOk) {
-      this.LastSendTime = Date.now()
-    }
-
+    this.sendMsg(rpc)
   }
 
-  //stream ping
+  sendMsg(msg: yrpcmsg.Ymsg): boolean {
+    let ok = rpcCon.sendRpc(msg)
+    if (ok) {
+      this.LastSendTime = Date.now()
+    }
+    return ok
+  }
+
+  //stream ping to keep stream call alive in yrpc-proxy
   streamPing() {
     let rpc = new yrpcmsg.Ymsg()
     rpc.Cmd = 14
-    rpc.Sid = rpcCon.Sid
-    rpc.Cid = rpcCon.NewCid()
+    rpc.Cid = this.cid
 
-    let sendOk = rpcCon.sendRpc(rpc)
-    if (sendOk) {
-      this.LastSendTime = Date.now()
-    }
+    this.sendMsg(rpc)
   }
+
 
   onRpc(rpc: yrpcmsg.Ymsg) {
     this.LastRecvTime = rpcCon.LastRecvTime
     let res: any = null
     switch (rpc.Cmd) {
+      case 2:
+        this.callOpt.OnGrpcHeader?.(rpc)
+        break
       case 3:
         //client stream call send first ok
+        this.StreamSetupOK = true
+        this.callOpt.OnStreamStarted?.()
         break
       case 4:
         //stream call got err
@@ -227,25 +244,39 @@ export class TRpcStream {
         break
       case 5:
         //got client stream send response
+        //fixme clear cache
+        break
+      case 6:
+        //stream finished send got recveived by server
         break
       case 7:
         //server stream call send first ok
+        this.StreamSetupOK = true
+        this.callOpt.OnStreamStarted?.()
         break
       case 8:
         //bidi stream call send first ok
+        this.StreamSetupOK = true
+        this.callOpt.OnStreamStarted?.()
         break
       case 12:
         //got reply from server
         if (rpc.Body.length > 0) {
           res = this.resType.decode(rpc.Body)
-
+        } else {
+          res = new this.resType
         }
-        if (this.callOpt.OnResult) {
-          this.callOpt.OnResult(res, rpc)
-        }
+        this.callOpt.OnResult?.(res, rpc)
         break
       case 13:
         //stream call finished
+        this.clearCall()
+        this.callOpt.OnStreamFinished?.(rpc)
+        break
+      case 44:
+        //got cancel stream call response
+        this.clearCall()
+        this.callOpt.OnCancel?.(rpc)
         break
     }
   }
@@ -263,7 +294,7 @@ export class TrpcCon {
   wsCon: WebSocket | null = null
   LastRecvTime: number = -1
   LastSendTime: number = -1
-  private cid: number = 0
+  private cid: number = 1
 
   OnceSubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
   SubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
@@ -316,59 +347,63 @@ export class TrpcCon {
   onWsMsg(ev: MessageEvent): void {
     this.LastRecvTime = Date.now()
     let rpcData = new Uint8Array(ev.data)
-    let rpc = yrpcmsg.Ymsg.decode(rpcData)
+    let rpcMsg = yrpcmsg.Ymsg.decode(rpcData)
 
-    if (rpc.Body.length > 0) {
-      let zipType = rpc.Cmd & 0x000f0000
+    if (rpcMsg.Body.length > 0) {
+      let zipType = rpcMsg.Cmd & 0x000f0000
       switch (zipType) {
         case 0x00010000://lz4
           throw new Error("no lz4 support now")
         case 0x00020000://zlib
-          rpc.Body = pako.inflate(rpc.Body)
+          rpcMsg.Body = pako.inflate(rpcMsg.Body)
           break
       }
 
     }
-    if (rpc.Optbin.length > 0) {
-      let zipType = rpc.Cmd & 0x00f00000
+    if (rpcMsg.Optbin.length > 0) {
+      let zipType = rpcMsg.Cmd & 0x00f00000
       switch (zipType) {
         case 0x00100000://lz4
           throw new Error("no lz4 support now")
         case 0x00200000://zlib
-          rpc.Optbin = pako.inflate(rpc.Optbin)
+          rpcMsg.Optbin = pako.inflate(rpcMsg.Optbin)
           break
       }
     }
 
-    rpc.Cmd = rpc.Cmd & 0xffff
-    switch (rpc.Cmd) {
+    rpcMsg.Cmd = rpcMsg.Cmd & 0xffff
+    switch (rpcMsg.Cmd) {
       case 1:
         //unary call response
-        ypubsub.publishInt(rpc.Cid, rpc)
+        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
+        break
+      case 2:
+        //grpc header
+        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
         break
       case 3:
         //client stream call setup respone
-        ypubsub.publishInt(rpc.Cid, rpc)
+        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
         break
       case 4:
         //server err
-        ypubsub.publishInt(rpc.Cid, rpc)
+        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
         break
       case 5:
         //send next response
-        ypubsub.publishInt(rpc.Cid, rpc)
+        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
         break
       case 6:
         //send close response
-        ypubsub.publishInt(rpc.Cid, rpc)
+        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
         break
       case 7:
-        //server stream call response
-        ypubsub.publishInt(rpc.Cid, rpc)
+        //server stream call setup response
+        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
         break
       case 8:
         //bidi stream call setup response
-        ypubsub.publishInt(rpc.Cid, rpc)
+        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
         break
       case 9:
         //nats publish response
@@ -385,21 +420,27 @@ export class TrpcCon {
 
       case 12:
         //got server stream reply
-        //fixme server stream reply
+        this.recvConfirm(rpcMsg)
+        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
         break
 
       case 13:
         //server stream finished
-        //fixme server stream finished
+        this.recvConfirm(rpcMsg)
+        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
         break
       case 14:
-        if (rpc.Res == 1) {
+        if (rpcMsg.Res == 1) {
           //ping response
-          ypubsub.publishInt(rpc.Cid, rpc)
+          ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
         } else {
           //respone server ping
-          this.onping(rpc)
+          this.onping(rpcMsg)
         }
+        break
+      case 44:
+
+        break
 
     }
 
@@ -519,12 +560,21 @@ export class TrpcCon {
 
   private genCid(): number {
     if (this.cid === 0xFFFFFFFF) {
-      this.cid = 0
+      this.cid = 1
       return 0xFFFFFFFF
     }
 
 
     return this.cid++
+  }
+
+  recvConfirm(msg: yrpcmsg.Ymsg) {
+    let resMsg = new yrpcmsg.Ymsg()
+    resMsg.Cid = msg.Cid
+    resMsg.No = msg.No
+    resMsg.Cmd = msg.Cmd
+
+    this.sendRpc(resMsg)
   }
 
   ping(pongFn?: IPong): void {
@@ -609,7 +659,7 @@ export class TrpcCon {
           callOpt?.OnServerErr?.(resRpc)
           break
         default:
-          console.log("unary call bad:res:", resRpc);
+          console.log("unary call bad:res:", rpc, resRpc);
       }
       clearTimeout(timeoutId)
     })
