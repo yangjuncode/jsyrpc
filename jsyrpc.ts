@@ -1,12 +1,11 @@
-import {yrpcmsg} from 'yrpcmsg'
-
+import { yrpcmsg } from 'yrpcmsg'
 import pako from 'pako'
-import ypubsub from 'ypubsub';
-import {Writer} from 'protobufjs';
-import IMeta = yrpcmsg.IMeta;
-import IGrpcMeta = yrpcmsg.IGrpcMeta;
-import GrpcMeta = yrpcmsg.GrpcMeta;
-import UnixTime = yrpcmsg.UnixTime;
+import { IntPubSub } from 'ypubsub'
+import { Writer } from 'protobufjs'
+import IMeta = yrpcmsg.IMeta
+import IGrpcMeta = yrpcmsg.IGrpcMeta
+import GrpcMeta = yrpcmsg.GrpcMeta
+import UnixTime = yrpcmsg.UnixTime
 
 function isCallbackInMap(key: string, callBack: Function, _map: Map<string, Function[]>): boolean {
   let mapItem = _map.get(key)
@@ -34,13 +33,12 @@ function delCallbackFromMap(key: string, callBack: Function, _map: Map<string, F
     return
   }
   calbacks = calbacks.filter(
-      function (v: any): boolean {
-        return v !== callBack
+    function (v: any): boolean {
+      return v !== callBack
 
-      })
+    })
   _map.set(key, calbacks)
 }
-
 
 export interface IResult {
   (res: any, rpcCmd: yrpcmsg.Ymsg, meta?: IGrpcMeta): void
@@ -125,7 +123,7 @@ export class TRpcStream {
     this.resType = resType
     this.metaInfo = callOpt?.rpcMeta
     this.cid = rpcCon.NewCid()
-    ypubsub.subscribeInt(this.cid, this.onRpc.bind(this))
+    IntPubSub.subscribe(this.cid, this.onRpc.bind(this))
 
     if (!callOpt) {
       callOpt = new TCallOption()
@@ -142,18 +140,17 @@ export class TRpcStream {
   }
 
   reqEncode(req: any): Uint8Array {
-    let w: Writer = this.reqType.encode(req);
+    let w: Writer = this.reqType.encode(req)
     return w.finish()
   }
 
   clearCall() {
-    ypubsub.unsubscribeInt(this.cid)
+    IntPubSub.unsubscribe(this.cid)
     if (this.intervalTmrId >= 0) {
       clearInterval(this.intervalTmrId)
       this.intervalTmrId = -1
     }
   }
-
 
   sendFirst(req: any) {
     let reqData = this.reqEncode(req)
@@ -221,11 +218,9 @@ export class TRpcStream {
     let rpc = new yrpcmsg.Ymsg()
     rpc.Cmd = 14
     rpc.Cid = this.cid
-    rpc.No = rpc.Cid
 
     this.sendMsg(rpc)
   }
-
 
   onRpc(rpc: yrpcmsg.Ymsg) {
     this.LastRecvTime = rpcCon.LastRecvTime
@@ -292,7 +287,7 @@ export class TRpcStream {
 
 export class TrpcCon {
   Sid: Uint8Array = new Uint8Array()
-  wsUrl: string = ""
+  wsUrl: string = ''
   wsCon: WebSocket | null = null
   LastRecvTime: number = -1
   LastSendTime: number = -1
@@ -300,7 +295,6 @@ export class TrpcCon {
 
   OnceSubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
   SubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
-
 
   initWsCon(url: string) {
 
@@ -318,7 +312,6 @@ export class TrpcCon {
     this.wsCon.onopen = this.onWsOpen.bind(this)
 
   }
-
 
   isWsConnected(): boolean {
     if (!this.wsCon) {
@@ -355,7 +348,7 @@ export class TrpcCon {
       let zipType = rpcMsg.Cmd & 0x000f0000
       switch (zipType) {
         case 0x00010000://lz4
-          throw new Error("no lz4 support now")
+          throw new Error('no lz4 support now')
         case 0x00020000://zlib
           rpcMsg.Body = pako.inflate(rpcMsg.Body)
           break
@@ -366,7 +359,7 @@ export class TrpcCon {
       let zipType = rpcMsg.Cmd & 0x00f00000
       switch (zipType) {
         case 0x00100000://lz4
-          throw new Error("no lz4 support now")
+          throw new Error('no lz4 support now')
         case 0x00200000://zlib
           rpcMsg.Optbin = pako.inflate(rpcMsg.Optbin)
           break
@@ -377,35 +370,35 @@ export class TrpcCon {
     switch (rpcMsg.Cmd) {
       case 1:
         //unary call response
-        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
+        IntPubSub.publish(rpcMsg.Cid, rpcMsg)
         break
       case 2:
         //grpc header
-        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
+        IntPubSub.publish(rpcMsg.Cid, rpcMsg)
         break
       case 3:
         //client stream call setup respone
-        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
+        IntPubSub.publish(rpcMsg.Cid, rpcMsg)
         break
       case 4:
         //server err
-        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
+        IntPubSub.publish(rpcMsg.Cid, rpcMsg)
         break
       case 5:
         //send next response
-        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
+        IntPubSub.publish(rpcMsg.Cid, rpcMsg)
         break
       case 6:
         //send close response
-        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
+        IntPubSub.publish(rpcMsg.Cid, rpcMsg)
         break
       case 7:
         //server stream call setup response
-        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
+        IntPubSub.publish(rpcMsg.Cid, rpcMsg)
         break
       case 8:
         //bidi stream call setup response
-        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
+        IntPubSub.publish(rpcMsg.Cid, rpcMsg)
         break
       case 9:
         //nats publish response
@@ -423,18 +416,18 @@ export class TrpcCon {
       case 12:
         //got server stream reply
         this.recvConfirm(rpcMsg)
-        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
+        IntPubSub.publish(rpcMsg.Cid, rpcMsg)
         break
 
       case 13:
         //server stream finished
         this.recvConfirm(rpcMsg)
-        ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
+        IntPubSub.publish(rpcMsg.Cid, rpcMsg)
         break
       case 14:
         if (rpcMsg.Res == 1) {
           //ping response
-          ypubsub.publishInt(rpcMsg.Cid, rpcMsg)
+          IntPubSub.publish(rpcMsg.Cid, rpcMsg)
         } else {
           //respone server ping
           this.onping(rpcMsg)
@@ -449,12 +442,12 @@ export class TrpcCon {
   }
 
   onWsErr(ev: Event): void {
-    console.log("ws err:", ev);
+    console.log('ws err:', ev)
   }
 
   onWsClose(ev: CloseEvent): void {
     this.wsCon = null
-    console.log("ws closed:", ev)
+    console.log('ws closed:', ev)
 
     window.setTimeout(() => {
       if (this.isWsConnected()) {
@@ -465,10 +458,9 @@ export class TrpcCon {
   }
 
   onWsOpen(ev: Event) {
-    console.log("ws open:", ev);
+    console.log('ws open:', ev)
     this.ping()
   }
-
 
   //return cid in rpccmd, <0: not send
   NatsPublish(subject: string, data: Uint8Array, natsOpt?: yrpcmsg.NatsOption): number {
@@ -551,12 +543,11 @@ export class TrpcCon {
 
     while (true) {
       let newCid = this.genCid()
-      if (ypubsub.hasSubscribeInt(newCid)) {
+      if (IntPubSub.hasSubscribe(newCid)) {
         continue
       }
       return newCid
     }
-
 
   }
 
@@ -565,7 +556,6 @@ export class TrpcCon {
       this.cid = 1
       return 0xFFFFFFFF
     }
-
 
     return this.cid++
   }
@@ -584,19 +574,21 @@ export class TrpcCon {
     rpc.Cmd = 14
     rpc.Cid = rpcCon.NewCid()
     if (pongFn) {
-      rpc.Optstr = "1"
+      rpc.Optstr = '1'
     }
     let timeoutId: number = window.setTimeout(() => {
-      ypubsub.unsubscribeInt(rpc.Cid)
+      IntPubSub.unsubscribe(rpc.Cid)
     }, 5000)
-    ypubsub.subscribeOnceInt(rpc.Cid, function (resRpc: yrpcmsg.Ymsg) {
+
+    const subscribePingRes = (resRpc: yrpcmsg.Ymsg) => {
       clearTimeout(timeoutId)
       if (pongFn) {
         let unixTime = UnixTime.decode(resRpc.Body)
         pongFn(resRpc, unixTime)
       }
+    }
 
-    })
+    IntPubSub.subscribeOnce(rpc.Cid, subscribePingRes.bind(this))
     this.sendRpc(rpc)
 
   }
@@ -633,19 +625,18 @@ export class TrpcCon {
     }
 
     if (!sendOk) {
-      callOpt?.OnLocalErr?.("can not send to socket")
+      callOpt?.OnLocalErr?.('can not send to socket')
       return sendOk
     }
     if (callOpt.timeout <= 0) {
       callOpt.timeout = 30
     }
     let timeoutId: number = window.setTimeout(() => {
-      ypubsub.unsubscribeInt(rpc.Cid)
+      IntPubSub.unsubscribe(rpc.Cid)
       callOpt?.OnTimeout?.()
     }, callOpt.timeout * 1000)
 
-
-    ypubsub.subscribeOnceInt(rpc.Cid, function (resRpc: yrpcmsg.Ymsg) {
+    const subscribeCb = (resRpc: yrpcmsg.Ymsg) => {
       switch (resRpc.Cmd) {
         case 1:
           let res = resType.decode(resRpc.Body)
@@ -656,15 +647,16 @@ export class TrpcCon {
             callOpt?.OnResult?.(res, resRpc)
           }
 
-          break;
+          break
         case 4:
           callOpt?.OnServerErr?.(resRpc)
           break
         default:
-          console.log("unary call bad:res:", rpc, resRpc);
+          console.log('unary call bad:res:', rpc, resRpc)
       }
       clearTimeout(timeoutId)
-    })
+    }
+    IntPubSub.subscribeOnce(rpc.Cid, subscribeCb.bind(this))
 
     return sendOk
 
