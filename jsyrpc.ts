@@ -125,7 +125,7 @@ export class TRpcStream {
     this.resType = resType
     this.metaInfo = callOpt?.rpcMeta
     this.cid = rpcCon.NewCid()
-    ypubsub.subscribeInt(this.cid, this.onRpc)
+    ypubsub.subscribeInt(this.cid, this.onRpc.bind(this))
 
     if (!callOpt) {
       callOpt = new TCallOption()
