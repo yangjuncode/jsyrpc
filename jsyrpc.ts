@@ -33,13 +33,12 @@ function delCallbackFromMap(key: string, callBack: Function, _map: Map<string, F
     return
   }
   calbacks = calbacks.filter(
-      function (v: any): boolean {
-        return v !== callBack
+    function (v: any): boolean {
+      return v !== callBack
 
-      })
+    })
   _map.set(key, calbacks)
 }
-
 
 export interface IResult {
   (res: any, rpcCmd: yrpcmsg.Ymsg, meta?: IGrpcMeta): void
@@ -65,6 +64,7 @@ export interface IPong {
 export interface ICancel {
   (rpcCmd: yrpcmsg.Ymsg): void
 }
+
 export interface IGrpcHeader {
   (rpcCmd: yrpcmsg.Ymsg): void
 }
@@ -87,7 +87,7 @@ export class TCallOption {
   //on call got cancel response from server
   OnCancel?: ICancel
   //when got grpc header
-  OnGrpcHeader?:IGrpcHeader
+  OnGrpcHeader?: IGrpcHeader
   //when got stream finished response, call this fn
   OnStreamFinished?: IFinished
   //流式调用已经建立（收到了回应)
@@ -151,7 +151,6 @@ export class TRpcStream {
       this.intervalTmrId = -1
     }
   }
-
 
   sendFirst(req: any) {
     let reqData = this.reqEncode(req)
@@ -223,7 +222,6 @@ export class TRpcStream {
     this.sendMsg(rpc)
   }
 
-
   onRpc(rpc: yrpcmsg.Ymsg) {
     this.LastRecvTime = rpcCon.LastRecvTime
     let res: any = null
@@ -289,7 +287,7 @@ export class TRpcStream {
 
 export class TrpcCon {
   Sid: Uint8Array = new Uint8Array()
-  wsUrl: string = ""
+  wsUrl: string = ''
   wsCon: WebSocket | null = null
   LastRecvTime: number = -1
   LastSendTime: number = -1
@@ -297,7 +295,6 @@ export class TrpcCon {
 
   OnceSubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
   SubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
-
 
   initWsCon(url: string) {
 
@@ -315,7 +312,6 @@ export class TrpcCon {
     this.wsCon.onopen = this.onWsOpen.bind(this)
 
   }
-
 
   isWsConnected(): boolean {
     if (!this.wsCon) {
@@ -352,7 +348,7 @@ export class TrpcCon {
       let zipType = rpcMsg.Cmd & 0x000f0000
       switch (zipType) {
         case 0x00010000://lz4
-          throw new Error("no lz4 support now")
+          throw new Error('no lz4 support now')
         case 0x00020000://zlib
           rpcMsg.Body = pako.inflate(rpcMsg.Body)
           break
@@ -363,7 +359,7 @@ export class TrpcCon {
       let zipType = rpcMsg.Cmd & 0x00f00000
       switch (zipType) {
         case 0x00100000://lz4
-          throw new Error("no lz4 support now")
+          throw new Error('no lz4 support now')
         case 0x00200000://zlib
           rpcMsg.Optbin = pako.inflate(rpcMsg.Optbin)
           break
@@ -446,12 +442,12 @@ export class TrpcCon {
   }
 
   onWsErr(ev: Event): void {
-    console.log("ws err:", ev);
+    console.log('ws err:', ev)
   }
 
   onWsClose(ev: CloseEvent): void {
     this.wsCon = null
-    console.log("ws closed:", ev)
+    console.log('ws closed:', ev)
 
     window.setTimeout(() => {
       if (this.isWsConnected()) {
@@ -462,10 +458,9 @@ export class TrpcCon {
   }
 
   onWsOpen(ev: Event) {
-    console.log("ws open:", ev);
+    console.log('ws open:', ev)
     this.ping()
   }
-
 
   //return cid in rpccmd, <0: not send
   NatsPublish(subject: string, data: Uint8Array, natsOpt?: yrpcmsg.NatsOption): number {
@@ -554,7 +549,6 @@ export class TrpcCon {
       return newCid
     }
 
-
   }
 
   private genCid(): number {
@@ -562,7 +556,6 @@ export class TrpcCon {
       this.cid = 1
       return 0xFFFFFFFF
     }
-
 
     return this.cid++
   }
@@ -581,7 +574,7 @@ export class TrpcCon {
     rpc.Cmd = 14
     rpc.Cid = rpcCon.NewCid()
     if (pongFn) {
-      rpc.Optstr = "1"
+      rpc.Optstr = '1'
     }
     let timeoutId: number = window.setTimeout(() => {
       IntPubSub.unsubscribe(rpc.Cid)
@@ -632,7 +625,7 @@ export class TrpcCon {
     }
 
     if (!sendOk) {
-      callOpt?.OnLocalErr?.("can not send to socket")
+      callOpt?.OnLocalErr?.('can not send to socket')
       return sendOk
     }
     if (callOpt.timeout <= 0) {
