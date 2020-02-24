@@ -66,6 +66,7 @@ export interface IPong {
 export interface ICancel {
   (rpcCmd: yrpcmsg.Ymsg): void
 }
+
 export interface IGrpcHeader {
   (rpcCmd: yrpcmsg.Ymsg): void
 }
@@ -88,7 +89,7 @@ export class TCallOption {
   //on call got cancel response from server
   OnCancel?: ICancel
   //when got grpc header
-  OnGrpcHeader?:IGrpcHeader
+  OnGrpcHeader?: IGrpcHeader
   //when got stream finished response, call this fn
   OnStreamFinished?: IFinished
   //流式调用已经建立（收到了回应)
@@ -220,6 +221,7 @@ export class TRpcStream {
     let rpc = new yrpcmsg.Ymsg()
     rpc.Cmd = 14
     rpc.Cid = this.cid
+    rpc.No = rpc.Cid
 
     this.sendMsg(rpc)
   }
