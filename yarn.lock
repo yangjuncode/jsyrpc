@@ -109,9 +109,16 @@ ypubsub@^1.0.5:
   resolved "https://registry.npmjs.org/ypubsub/-/ypubsub-1.0.5.tgz#a71b08341e9a0770909c13f3f9e45e4a8c4a8dfd"
   integrity sha512-C5vN0sTiYFPqtkK0WUvexzfEKIOJbvxFEw81aMfUBGX/N0i1Mr77BmazSBpNAfnvh8I6IvOyRjty0/Gm/AIDXw==
 
-yrpcmsg@^1.1.3:
-  version "1.2.2"
-  resolved "https://registry.npmjs.org/yrpcmsg/-/yrpcmsg-1.2.2.tgz#2f6d096f05eff3f405f52471b46e15eff3baeed6"
-  integrity sha512-1942ip7DOdFO9igFX6IpWGLK6tJVrsgjO3Dp/kKqCYQk+gHDIR3FrBQPymXi198HCwP/swNdA2CD3ID9DXdjzA==
+yrpcjsutil@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/yrpcjsutil/-/yrpcjsutil-1.0.0.tgz#e9c4a08df1c1fbf8e7ba71fc9e0b3b2adaadc702"
+  integrity sha512-197ak2DQD0VzVvLum3/u05fRD6qILrd2Q/Y0LwCkch4IAw1zQ6ijFErpZ+7pfZ1oa03Mqv3BZc3ndk8J5f+DWA==
+  dependencies:
+    "@protobufjs/utf8" "^1.1.0"
+
+yrpcmsg@^1.2.3:
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/yrpcmsg/-/yrpcmsg-1.2.3.tgz#2716d39c2277bf09700c542f54454688e82ea65b"
+  integrity sha512-MZi+PQhrC8fByqI2/uIWN/rGeFyJE8i52EBOOT1bDKEGeyW9GqKSlYg1fToxkzBhGArnXzsUmYWJfIB2Hv8Okg==
   dependencies:
     protobufjs "^6.8.8"
