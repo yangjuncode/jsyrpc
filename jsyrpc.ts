@@ -1,11 +1,12 @@
-import { yrpcmsg } from 'yrpcmsg'
+import {yrpcmsg} from 'yrpcmsg'
 import pako from 'pako'
-import { IntPubSub } from 'ypubsub'
-import { Writer } from 'protobufjs'
+import {IntPubSub} from 'ypubsub'
+import {Writer} from 'protobufjs'
 import IMeta = yrpcmsg.IMeta
 import IGrpcMeta = yrpcmsg.IGrpcMeta
 import GrpcMeta = yrpcmsg.GrpcMeta
 import UnixTime = yrpcmsg.UnixTime
+import {str2uint8array} from 'yrpcjsutil'
 
 function isCallbackInMap(key: string, callBack: Function, _map: Map<string, Function[]>): boolean {
   let mapItem = _map.get(key)
@@ -33,10 +34,10 @@ function delCallbackFromMap(key: string, callBack: Function, _map: Map<string, F
     return
   }
   calbacks = calbacks.filter(
-    function (v: any): boolean {
-      return v !== callBack
+      function (v: any): boolean {
+        return v !== callBack
 
-    })
+      })
   _map.set(key, calbacks)
 }
 
@@ -419,15 +420,15 @@ export class TrpcCon {
         break
       case 9:
         //nats publish response
-        //fixme nats publish response
+        IntPubSub.publish(rpcMsg.Cid, rpcMsg)
         break
       case 10:
         //nats sub/unsub response
-        //fixme sub/unsub response
+        IntPubSub.publish(rpcMsg.Cid, rpcMsg)
         break
       case 11:
         //got nats msg
-        //fixme got nats msg
+        this.onNatsMsg(rpcMsg)
         break
 
       case 12:
@@ -458,6 +459,27 @@ export class TrpcCon {
 
   }
 
+  onNatsMsg(rpc: yrpcmsg.Ymsg) {
+    let onceSubsFn = this.OnceSubscribeList.get(rpc.Optstr) || []
+    if (onceSubsFn.length > 0) {
+      this.OnceSubscribeList.delete(rpc.Optstr)
+
+      for (let j = 0; j < onceSubsFn.length; ++j) {
+        onceSubsFn[j].apply(this, rpc)
+      }
+    }
+
+    let subsFn = this.SubscribeList.get(rpc.Optstr) || []
+    if (subsFn.length === 0) {
+      //没有订阅了，从服务器中删除订阅
+      this.NatsUnsubsribe(rpc.Optstr)
+    } else {
+      for (let i = 0; i < subsFn.length; ++i) {
+        subsFn[i].apply(this, rpc)
+      }
+    }
+  }
+
   onWsErr(ev: Event): void {
     console.log('ws err:', ev)
   }
@@ -481,20 +503,19 @@ export class TrpcCon {
   }
 
   //return cid in rpccmd, <0: not send
-  NatsPublish(subject: string, data: Uint8Array, natsOpt?: yrpcmsg.NatsOption): number {
+  NatsPublish(subject: string, data: Uint8Array, reply?: string): number {
     if (!this.isWsConnected()) {
       return -1
     }
 
     let rpc = new yrpcmsg.Ymsg()
-    rpc.Cmd = 11
+    rpc.Cmd = 9
     rpc.Cid = this.NewCid()
     rpc.Optstr = subject
     rpc.Body = data
 
-    if (natsOpt) {
-      let w = yrpcmsg.NatsOption.encode(natsOpt)
-      rpc.Optbin = w.finish()
+    if (reply) {
+      rpc.Optbin = str2uint8array(reply)
     }
     this.sendRpc(rpc)
     return rpc.Cid
@@ -509,7 +530,7 @@ export class TrpcCon {
       return true
     }
     let rpc = new yrpcmsg.Ymsg()
-    rpc.Cmd = 12
+    rpc.Cmd = 10
     rpc.Res = 1
     rpc.Cid = this.NewCid()
     rpc.Optstr = subject
@@ -529,7 +550,7 @@ export class TrpcCon {
       return true
     }
     let rpc = new yrpcmsg.Ymsg()
-    rpc.Cmd = 12
+    rpc.Cmd = 10
     rpc.Res = 1
     rpc.Cid = this.NewCid()
     rpc.Optstr = subject
@@ -541,7 +562,7 @@ export class TrpcCon {
 
   NatsUnsubsribe(subject: string, FnMsg?: Function) {
     let rpc = new yrpcmsg.Ymsg()
-    rpc.Cmd = 12
+    rpc.Cmd = 10
     rpc.Res = 2
     rpc.Cid = this.NewCid()
     rpc.Optstr = subject
