@@ -296,6 +296,10 @@ export class TrpcCon {
   OnceSubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
   SubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
 
+  // 5分钟内ping一次服务器，以保持连接有效
+  private pingId: number | undefined = undefined
+  private pingTimeout: number = 5 * 60 * 1000
+
   initWsCon(url: string) {
 
     if (this.wsCon) {
@@ -320,6 +324,15 @@ export class TrpcCon {
     return this.wsCon.readyState === WebSocket.OPEN
   }
 
+  autoPing() {
+    clearTimeout(this.pingId)
+    this.pingId = window.setTimeout(() => {
+      this.ping((rpcCmd: yrpcmsg.Ymsg, unixTime: UnixTime) => {
+        this.autoPing()
+      })
+    }, this.pingTimeout)
+  }
+
   sendRpcData(rpcData: Uint8Array): boolean {
     if (!this.wsCon) {
       return false
@@ -330,6 +343,10 @@ export class TrpcCon {
 
     this.wsCon.send(rpcData)
     this.LastSendTime = Date.now()
+
+    // 发送数据成功后，重新计时，向服务器发送ping指令
+    this.autoPing()
+
     return true
   }
 
@@ -460,6 +477,7 @@ export class TrpcCon {
   onWsOpen(ev: Event) {
     console.log('ws open:', ev)
     this.ping()
+    this.autoPing()
   }
 
   //return cid in rpccmd, <0: not send
