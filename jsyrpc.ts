@@ -1,12 +1,12 @@
-import {yrpcmsg} from 'yrpcmsg'
+import { yrpcmsg } from 'yrpcmsg'
 import pako from 'pako'
-import {IntPubSub} from 'ypubsub'
-import {Writer} from 'protobufjs'
+import { IntPubSub } from 'ypubsub'
+import { Writer } from 'protobufjs'
 import IMeta = yrpcmsg.IMeta
 import IGrpcMeta = yrpcmsg.IGrpcMeta
 import GrpcMeta = yrpcmsg.GrpcMeta
 import UnixTime = yrpcmsg.UnixTime
-import {str2uint8array} from 'yrpcjsutil'
+import { str2uint8array } from 'yrpcjsutil'
 
 function isCallbackInMap(key: string, callBack: Function, _map: Map<string, Function[]>): boolean {
   let mapItem = _map.get(key)
@@ -34,10 +34,10 @@ function delCallbackFromMap(key: string, callBack: Function, _map: Map<string, F
     return
   }
   calbacks = calbacks.filter(
-      function (v: any): boolean {
-        return v !== callBack
+    function (v: any): boolean {
+      return v !== callBack
 
-      })
+    })
   _map.set(key, calbacks)
 }
 
@@ -299,7 +299,9 @@ export class TrpcCon {
 
   // 5分钟内ping一次服务器，以保持连接有效
   private pingId: number | undefined = undefined
-  private pingTimeout: number = 5 * 60 * 1000
+  // 超时时间单位为秒
+  private pingCheckTimeout: number = 3 * 60
+  private pingMaxTimeout: number = 5 * 60
 
   initWsCon(url: string) {
 
@@ -326,12 +328,23 @@ export class TrpcCon {
   }
 
   autoPing() {
-    clearTimeout(this.pingId)
-    this.pingId = window.setTimeout(() => {
-      this.ping((rpcCmd: yrpcmsg.Ymsg, unixTime: UnixTime) => {
-        this.autoPing()
-      })
-    }, this.pingTimeout)
+    // 先ping一次服务器
+    this.ping()
+
+    // 启动定时器
+    this.pingId = window.setInterval(() => {
+      // 上次发数据时间到当前时间的差值，最大值为定时器间隔时间
+      const lastSendTimeDiff = Date.now() - this.LastSendTime
+      // 如果上次发数据时间离当前时间小于2分钟，则结束，交由下次定时检测
+      if (lastSendTimeDiff <= (this.pingMaxTimeout - this.pingCheckTimeout) * 1000) {
+        return
+      }
+      // 大于2分钟，则需计算上次发数据时间到最大ping时间间隔差值，以便在这个差值内使用一次定时器发送ping命令
+      const overTimeout = new Date(this.LastSendTime + this.pingMaxTimeout * 1000).getTime() - Date.now()
+      setTimeout(() => {
+        this.ping()
+      }, overTimeout)
+    }, this.pingCheckTimeout * 1000)
   }
 
   sendRpcData(rpcData: Uint8Array): boolean {
@@ -344,9 +357,6 @@ export class TrpcCon {
 
     this.wsCon.send(rpcData)
     this.LastSendTime = Date.now()
-
-    // 发送数据成功后，重新计时，向服务器发送ping指令
-    this.autoPing()
 
     return true
   }
@@ -487,6 +497,7 @@ export class TrpcCon {
   onWsClose(ev: CloseEvent): void {
     this.wsCon = null
     console.log('ws closed:', ev)
+    clearTimeout(this.pingId)
 
     window.setTimeout(() => {
       if (this.isWsConnected()) {
@@ -498,7 +509,6 @@ export class TrpcCon {
 
   onWsOpen(ev: Event) {
     console.log('ws open:', ev)
-    this.ping()
     this.autoPing()
   }
 
