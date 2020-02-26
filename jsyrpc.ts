@@ -34,10 +34,10 @@ function delCallbackFromMap(key: string, callBack: Function, _map: Map<string, F
     return
   }
   calbacks = calbacks.filter(
-    function (v: any): boolean {
-      return v !== callBack
+      function (v: any): boolean {
+        return v !== callBack
 
-    })
+      })
   _map.set(key, calbacks)
 }
 
@@ -299,9 +299,10 @@ export class TrpcCon {
 
   // 5分钟内ping一次服务器，以保持连接有效
   private pingId: number | undefined = undefined
-  // 超时时间单位为秒
-  private pingCheckTimeout: number = 3 * 60
-  private pingMaxTimeout: number = 5 * 60
+  // 超时时间单位为ms
+  private pingCheckTimeout: number = 3 * 60 * 1000
+  private pingMaxTimeout: number = 5 * 60 * 1000
+  private lastPingCheckTime: number = 0
 
   initWsCon(url: string) {
 
@@ -327,24 +328,38 @@ export class TrpcCon {
     return this.wsCon.readyState === WebSocket.OPEN
   }
 
+  pingCheck() {
+    this.lastPingCheckTime = Date.now()
+    const leftTime = this.lastPingCheckTime - this.LastSendTime
+
+    if (leftTime >= this.pingMaxTimeout) {
+      this.ping()
+      return
+    }
+
+    if (leftTime >= this.pingCheckTimeout) {
+      //下一次pingcheck继续检查
+      return
+    } else {
+      const nextCheckTime = this.lastPingCheckTime + this.pingCheckTimeout
+
+      setTimeout(() => {
+        if (this.LastSendTime + this.pingCheckTimeout > nextCheckTime) {
+          //下一次Pingcheck处理
+          return
+        }
+        this.ping()
+      }, leftTime)
+    }
+  }
+
+
   autoPing() {
     // 先ping一次服务器
     this.ping()
 
     // 启动定时器
-    this.pingId = window.setInterval(() => {
-      // 上次发数据时间到当前时间的差值，最大值为定时器间隔时间
-      const lastSendTimeDiff = Date.now() - this.LastSendTime
-      // 如果上次发数据时间离当前时间小于2分钟，则结束，交由下次定时检测
-      if (lastSendTimeDiff <= (this.pingMaxTimeout - this.pingCheckTimeout) * 1000) {
-        return
-      }
-      // 大于2分钟，则需计算上次发数据时间到最大ping时间间隔差值，以便在这个差值内使用一次定时器发送ping命令
-      const overTimeout = new Date(this.LastSendTime + this.pingMaxTimeout * 1000).getTime() - Date.now()
-      setTimeout(() => {
-        this.ping()
-      }, overTimeout)
-    }, this.pingCheckTimeout * 1000)
+    this.pingId = window.setInterval(this.pingCheck.bind(this), this.pingCheckTimeout)
   }
 
   sendRpcData(rpcData: Uint8Array): boolean {
