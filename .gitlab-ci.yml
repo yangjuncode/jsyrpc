@@ -22,7 +22,7 @@ deploy:
       changes:
         - package.json
   script:
-    - env
+    - echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'>.npmrc
     - export myverion=$(node -p "require('./package.json').version")
     - echo myversion=$myverion
     - export npmverion=$(npm show jsyrpc version)
