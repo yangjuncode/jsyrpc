@@ -27,4 +27,4 @@ deploy:
     - echo myversion=$myverion
     - export $npmversion=$(npm show jsyrpc version)
     - echo npmversion=$npmversion
-    - if [ myversion != npmversion ]; then yarn ; yarn build; npm publish --access public; fi
+    - if [ $myversion != $npmversion ]; then yarn ; yarn build; npm publish --access public; fi
