@@ -104,10 +104,10 @@ typescript@^3.7.5:
   resolved "https://registry.npmjs.org/typescript/-/typescript-3.8.2.tgz#91d6868aaead7da74f493c553aeff76c0c0b1d5a"
   integrity sha512-EgOVgL/4xfVrCMbhYKUQTdF37SQn4Iw73H5BgCrF1Abdun7Kwy/QZsE/ssAy0y4LxBbvua3PIbFsbRczWWnDdQ==
 
-ypubsub@^1.0.5:
-  version "1.0.5"
-  resolved "https://registry.npmjs.org/ypubsub/-/ypubsub-1.0.5.tgz#a71b08341e9a0770909c13f3f9e45e4a8c4a8dfd"
-  integrity sha512-C5vN0sTiYFPqtkK0WUvexzfEKIOJbvxFEw81aMfUBGX/N0i1Mr77BmazSBpNAfnvh8I6IvOyRjty0/Gm/AIDXw==
+ypubsub@^1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/ypubsub/-/ypubsub-1.0.6.tgz#b06c57442cfb7d55a01f6e54bd2aeda54acb2f5e"
+  integrity sha512-iKm20DaWGHF0HzlZFFxP4KqCblx9k31aTw1j1gtBVfrbpNeZLqxBKlLXsCfPqRZWcm+MrdeljaCw6h/beMlSYQ==
 
 yrpcjsutil@^1.0.0:
   version "1.0.0"
@@ -116,9 +116,9 @@ yrpcjsutil@^1.0.0:
   dependencies:
     "@protobufjs/utf8" "^1.1.0"
 
-yrpcmsg@^1.2.3:
-  version "1.2.3"
-  resolved "https://registry.yarnpkg.com/yrpcmsg/-/yrpcmsg-1.2.3.tgz#2716d39c2277bf09700c542f54454688e82ea65b"
-  integrity sha512-MZi+PQhrC8fByqI2/uIWN/rGeFyJE8i52EBOOT1bDKEGeyW9GqKSlYg1fToxkzBhGArnXzsUmYWJfIB2Hv8Okg==
+yrpcmsg@^1.2.5:
+  version "1.2.5"
+  resolved "https://registry.yarnpkg.com/yrpcmsg/-/yrpcmsg-1.2.5.tgz#6a5463cc90c14cb4887b67388b1a550b61bb9fa1"
+  integrity sha512-vT1l11irMaRCXwxGYLuO4qrwv93SKTRjSIqjz4uNhl+elC5nXWX5+RXjzfw+7NdCnmkRUdj6QB0FLSKsPvyRbw==
   dependencies:
     protobufjs "^6.8.8"
