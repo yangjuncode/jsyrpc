@@ -329,19 +329,23 @@ export class TrpcCon {
   }
 
   pingCheck() {
-    this.lastPingCheckTime = Date.now()
-    const leftTime = this.lastPingCheckTime - this.LastSendTime
+    const nowTime = Date.now()
 
-    if (leftTime >= this.pingMaxTimeout) {
+    this.lastPingCheckTime = nowTime
+    const notSendTime = nowTime - this.LastSendTime
+
+    if (notSendTime >= this.pingMaxTimeout) {
       this.ping()
       return
     }
 
-    if (leftTime >= this.pingCheckTimeout) {
+    const timeoutTime = this.LastSendTime + this.pingMaxTimeout - nowTime
+
+    if (timeoutTime > this.pingCheckTimeout) {
       //下一次pingcheck继续检查
       return
     } else {
-      const nextCheckTime = this.lastPingCheckTime + this.pingCheckTimeout
+      const nextCheckTime = nowTime + this.pingCheckTimeout
 
       setTimeout(() => {
         if (this.LastSendTime + this.pingCheckTimeout > nextCheckTime) {
@@ -349,7 +353,7 @@ export class TrpcCon {
           return
         }
         this.ping()
-      }, leftTime)
+      }, timeoutTime)
     }
   }
 
