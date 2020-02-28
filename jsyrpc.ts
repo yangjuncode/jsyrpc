@@ -330,13 +330,10 @@ export class TrpcCon {
 
   pingCheck() {
     const nowTime = Date.now()
-    console.log("pingcheck")
-
     this.lastPingCheckTime = nowTime
     const notSendTime = nowTime - this.LastSendTime
 
     if (notSendTime >= this.pingMaxTimeout) {
-      console.log("pingcheck pingMaxTimeout")
       this.ping()
       return
     }
@@ -345,7 +342,6 @@ export class TrpcCon {
 
     if (timeoutTime > this.pingCheckTimeout) {
       //下一次pingcheck继续检查
-      console.log("pingcheck timeoutTime > this.pingCheckTimeout")
 
       return
     } else {
@@ -357,8 +353,6 @@ export class TrpcCon {
           return
         }
         this.ping()
-        console.log("pingcheck ping")
-
       }, timeoutTime)
     }
   }
