@@ -22,8 +22,9 @@ deploy:
       changes:
         - package.json
   script:
+    - env
     - export myverion=$(node -p "require('./package.json').version")
-    - echo myversion=$(myverion)
+    - echo myversion=$myverion
     - export npmverion=$(npm show jsyrpc version)
-    - echo npmversion=$(npmversion)
+    - echo npmversion=$npmversion
     - if [ myversion != npmversion ]; then yarn ; yarn build; npm publish --access public; fi
