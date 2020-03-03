@@ -1,6 +1,6 @@
 import { yrpcmsg } from 'yrpcmsg'
 import pako from 'pako'
-import { IntPubSub } from 'ypubsub'
+import { IntPubSub, StrPubSub } from 'ypubsub'
 import { Writer } from 'protobufjs'
 import IMeta = yrpcmsg.IMeta
 import IGrpcMeta = yrpcmsg.IGrpcMeta
@@ -34,10 +34,10 @@ function delCallbackFromMap(key: string, callBack: Function, _map: Map<string, F
     return
   }
   calbacks = calbacks.filter(
-      function (v: any): boolean {
-        return v !== callBack
+    function (v: any): boolean {
+      return v !== callBack
 
-      })
+    })
   _map.set(key, calbacks)
 }
 
@@ -286,7 +286,27 @@ export class TRpcStream {
 
 }
 
-export class TrpcCon {
+export interface IrpcCon {
+  readonly wsUrl: string
+
+  initWsCon(url: string): void
+
+  isWsConnected(): boolean
+
+  ping(pongFn?: IPong): void
+
+  sendRpcData(rpcData: Uint8Array): boolean
+
+  sendRpc(rpc: yrpcmsg.Ymsg): boolean
+
+  NocareCall(reqData: Uint8Array, api: string, v: number, callOpt?: TCallOption): boolean
+
+  UnaryCall(reqData: Uint8Array, api: string, v: number, resType: any, callOpt?: TCallOption): boolean
+
+  on(event: string, cb: Function): void
+}
+
+export class TrpcCon implements IrpcCon {
   Sid: Uint8Array = new Uint8Array()
   wsUrl: string = ''
   wsCon: WebSocket | null = null
@@ -303,6 +323,10 @@ export class TrpcCon {
   private pingCheckTimeout: number = 3 * 60 * 1000
   private pingMaxTimeout: number = 5 * 60 * 1000
   private lastPingCheckTime: number = 0
+
+  on(event: string, cb: Function): void {
+    StrPubSub.subscribe(event, cb)
+  }
 
   initWsCon(url: string) {
 
@@ -516,6 +540,8 @@ export class TrpcCon {
   onWsClose(ev: CloseEvent): void {
     this.wsCon = null
     console.log('ws closed:', ev)
+    StrPubSub.publish('onclose', ev)
+
     clearTimeout(this.pingId)
 
     window.setTimeout(() => {
@@ -528,6 +554,7 @@ export class TrpcCon {
 
   onWsOpen(ev: Event) {
     console.log('ws open:', ev)
+    StrPubSub.publish('onopen', ev)
     this.autoPing()
   }
 
