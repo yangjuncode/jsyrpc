@@ -70,10 +70,9 @@ export interface IGrpcHeader {
   (rpcCmd: yrpcmsg.Ymsg): void
 }
 
-export class TCallOption {
+export interface ICallOption {
   //timeout in seconds
-  timeout: number = 30
-
+  timeout?: number
   //grpc meta, see yrpcmsg.metainfo
   rpcMeta?: IMeta
   //when got reply for server,call this fn
@@ -93,11 +92,10 @@ export class TCallOption {
   OnStreamFinished?: IFinished
   //流式调用已经建立（收到了回应)
   OnStreamStarted?: Function
-
 }
 
 export class TRpcStream {
-  callOpt: TCallOption
+  callOpt: ICallOption = { timeout: 30 }
   api: string
   apiVerion: number
   cid: number
@@ -116,24 +114,20 @@ export class TRpcStream {
   private intervalTmrId: number = -1
 
   //streamType 3:client 7:server 8:bidi
-  constructor(api: string, v: number, streamType: number, reqType: any, resType: any, callOpt?: TCallOption) {
+  constructor(api: string, v: number, streamType: number, reqType: any, resType: any, callOpt?: ICallOption) {
+    Object.assign(this.callOpt, callOpt)
     this.api = api
     this.apiVerion = v
     this.streamType = streamType
     this.reqType = reqType
     this.resType = resType
-    this.metaInfo = callOpt?.rpcMeta
+    this.metaInfo = this.callOpt.rpcMeta
     this.cid = rpcCon.NewCid()
     IntPubSub.subscribe(this.cid, this.onRpc.bind(this))
 
-    if (!callOpt) {
-      callOpt = new TCallOption()
-      callOpt.timeout = 30
+    if (!this.callOpt.timeout || this.callOpt.timeout <= 0) {
+      this.callOpt.timeout = 30
     }
-    if (callOpt.timeout <= 0) {
-      callOpt.timeout = 30
-    }
-    this.callOpt = callOpt
 
     this.intervalTmrId = window.setInterval(() => {
       this.intervalCheck()
@@ -299,9 +293,9 @@ export interface IrpcCon {
 
   sendRpc(rpc: yrpcmsg.Ymsg): boolean
 
-  NocareCall(reqData: Uint8Array, api: string, v: number, callOpt?: TCallOption): boolean
+  NocareCall(reqData: Uint8Array, api: string, v: number, callOpt?: ICallOption): boolean
 
-  UnaryCall(reqData: Uint8Array, api: string, v: number, resType: any, callOpt?: TCallOption): boolean
+  UnaryCall(reqData: Uint8Array, api: string, v: number, resType: any, callOpt?: ICallOption): boolean
 
   on(event: string, cb: Function): void
 }
@@ -380,7 +374,6 @@ export class TrpcCon implements IrpcCon {
       }, timeoutTime)
     }
   }
-
 
   autoPing() {
     // 先ping一次服务器
@@ -693,7 +686,7 @@ export class TrpcCon implements IrpcCon {
     this.sendRpc(rpc)
   }
 
-  NocareCall(reqData: Uint8Array, api: string, v: number, callOpt?: TCallOption): boolean {
+  NocareCall(reqData: Uint8Array, api: string, v: number, callOpt?: ICallOption): boolean {
     let rpc = new yrpcmsg.Ymsg()
     rpc.Cmd = 2
     rpc.Body = reqData
@@ -703,7 +696,7 @@ export class TrpcCon implements IrpcCon {
     return this.sendRpc(rpc)
   }
 
-  UnaryCall(reqData: Uint8Array, api: string, v: number, resType: any, callOpt?: TCallOption): boolean {
+  UnaryCall(reqData: Uint8Array, api: string, v: number, resType: any, callOpt?: ICallOption): boolean {
     let rpc = new yrpcmsg.Ymsg()
 
     rpc.Cmd = 1
@@ -723,7 +716,7 @@ export class TrpcCon implements IrpcCon {
       callOpt?.OnLocalErr?.('can not send to socket')
       return sendOk
     }
-    if (callOpt.timeout <= 0) {
+    if (!callOpt.timeout || callOpt.timeout <= 0) {
       callOpt.timeout = 30
     }
     let timeoutId: number = window.setTimeout(() => {
