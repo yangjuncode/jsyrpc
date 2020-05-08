@@ -521,7 +521,7 @@ export class TrpcCon implements IrpcCon {
       this.NatsUnsubsribe(rpc.Optstr)
     } else {
       for (let i = 0; i < subsFn.length; ++i) {
-        subsFn[i].apply(this, rpc)
+        subsFn[i].apply(this, [rpc])
       }
     }
   }
