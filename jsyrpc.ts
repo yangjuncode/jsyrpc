@@ -511,7 +511,7 @@ export class TrpcCon implements IrpcCon {
       this.OnceSubscribeList.delete(rpc.Optstr)
 
       for (let j = 0; j < onceSubsFn.length; ++j) {
-        onceSubsFn[j].apply(this, rpc)
+        onceSubsFn[j].apply(this, [rpc])
       }
     }
 
