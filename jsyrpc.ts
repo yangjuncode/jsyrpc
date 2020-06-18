@@ -551,6 +551,25 @@ export class TrpcCon implements IrpcCon {
     this.autoPing()
   }
 
+  _NatsSubscribeAgain(subscribeList: Map<string, Function[]>) {
+    const SubscribeList = subscribeList.entries()
+    for (let [subject, callbackList] of SubscribeList) {
+      callbackList.forEach(FnMsg => {
+        const rpc = new yrpcmsg.Ymsg()
+        rpc.Cmd = 10
+        rpc.Res = 1
+        rpc.Cid = this.NewCid()
+        rpc.Optstr = subject
+        this.sendRpc(rpc)
+      })
+    }
+  }
+
+  NatsSubscribeAgain() {
+    this._NatsSubscribeAgain(this.SubscribeList)
+    this._NatsSubscribeAgain(this.OnceSubscribeList)
+  }
+
   //return cid in rpccmd, <0: not send
   NatsPublish(subject: string, data: Uint8Array, reply?: string): number {
     if (!this.isWsConnected()) {
