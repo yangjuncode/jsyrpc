@@ -335,6 +335,8 @@ export interface IrpcCon {
     UnaryCall(reqData: Uint8Array, api: string, v: number, resType: any, callOpt?: ICallOption): boolean
 
     on(event: string, cb: Function): void
+
+    NatsSubscribeAgain(): void
 }
 
 export class TrpcCon implements IrpcCon {
