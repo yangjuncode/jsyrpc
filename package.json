@@ -9,6 +9,7 @@
   "license": "MIT",
   "dependencies": {
     "@protobufjs/base64": "^1.1.2",
+    "core-js": "^3.6.5",
     "pako": "^1.0.10",
     "protobufjs": "^6.8.8",
     "ypubsub": "^1.0.15",
@@ -19,6 +20,7 @@
     "build": "tsc "
   },
   "devDependencies": {
+    "@types/core-js": "^2.5.4",
     "@types/pako": "^1.0.1",
     "typescript": "^3.7.5"
   }

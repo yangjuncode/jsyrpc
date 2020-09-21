@@ -55,6 +55,11 @@
   resolved "https://registry.npmjs.org/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha1-p3c2C1s5oaLlEG+OhY8v0tBgxXA=
 
+"@types/core-js@^2.5.4":
+  version "2.5.4"
+  resolved "https://registry.npm.taobao.org/@types/core-js/download/@types/core-js-2.5.4.tgz#fc42ebde7d9cfa7c5f2668f117449b02348e41fd"
+  integrity sha1-/ELr3n2c+nxfJmjxF0SbAjSOQf0=
+
 "@types/long@^4.0.0":
   version "4.0.1"
   resolved "https://registry.npmjs.org/@types/long/-/long-4.0.1.tgz#459c65fa1867dafe6a8f322c4c51695663cc55e9"
@@ -69,6 +74,11 @@
   version "1.0.1"
   resolved "https://registry.npmjs.org/@types/pako/-/pako-1.0.1.tgz#33b237f3c9aff44d0f82fe63acffa4a365ef4a61"
   integrity sha512-GdZbRSJ3Cv5fiwT6I0SQ3ckeN2PWNqxd26W9Z2fCK1tGrrasGy4puvNFtnddqH9UJFMQYXxEuuB7B8UK+LLwSg==
+
+core-js@^3.6.5:
+  version "3.6.5"
+  resolved "https://registry.npm.taobao.org/core-js/download/core-js-3.6.5.tgz?cache=0&sync_timestamp=1589682726446&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2Fcore-js%2Fdownload%2Fcore-js-3.6.5.tgz#7395dc273af37fb2e50e9bd3d9fe841285231d1a"
+  integrity sha1-c5XcJzrzf7LlDpvT2f6EEoUjHRo=
 
 long@^4.0.0:
   version "4.0.0"
@@ -104,10 +114,10 @@ typescript@^3.7.5:
   resolved "https://registry.npmjs.org/typescript/-/typescript-3.8.2.tgz#91d6868aaead7da74f493c553aeff76c0c0b1d5a"
   integrity sha512-EgOVgL/4xfVrCMbhYKUQTdF37SQn4Iw73H5BgCrF1Abdun7Kwy/QZsE/ssAy0y4LxBbvua3PIbFsbRczWWnDdQ==
 
-ypubsub@^1.0.6:
-  version "1.0.6"
-  resolved "https://registry.yarnpkg.com/ypubsub/-/ypubsub-1.0.6.tgz#b06c57442cfb7d55a01f6e54bd2aeda54acb2f5e"
-  integrity sha512-iKm20DaWGHF0HzlZFFxP4KqCblx9k31aTw1j1gtBVfrbpNeZLqxBKlLXsCfPqRZWcm+MrdeljaCw6h/beMlSYQ==
+ypubsub@^1.0.15:
+  version "1.0.15"
+  resolved "https://registry.npm.taobao.org/ypubsub/download/ypubsub-1.0.15.tgz#2a3292ed291ef7183669e8eebad0529f8ffb3d38"
+  integrity sha1-KjKS7Ske9xg2aejuutBSn4/7PTg=
 
 yrpcjsutil@^1.0.0:
   version "1.0.0"
@@ -116,9 +126,9 @@ yrpcjsutil@^1.0.0:
   dependencies:
     "@protobufjs/utf8" "^1.1.0"
 
-yrpcmsg@^1.2.5:
-  version "1.2.5"
-  resolved "https://registry.yarnpkg.com/yrpcmsg/-/yrpcmsg-1.2.5.tgz#6a5463cc90c14cb4887b67388b1a550b61bb9fa1"
-  integrity sha512-vT1l11irMaRCXwxGYLuO4qrwv93SKTRjSIqjz4uNhl+elC5nXWX5+RXjzfw+7NdCnmkRUdj6QB0FLSKsPvyRbw==
+yrpcmsg@^1.2.7:
+  version "1.2.7"
+  resolved "https://registry.npm.taobao.org/yrpcmsg/download/yrpcmsg-1.2.7.tgz#dfebc639eed3bb666067b0229dab5874e6776bc3"
+  integrity sha1-3+vGOe7Tu2ZgZ7AinatYdOZ3a8M=
   dependencies:
     protobufjs "^6.8.8"
