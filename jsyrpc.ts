@@ -155,7 +155,7 @@ export class TRpcStream {
   private newNo: number = 0
   LastSendTime: number = Date.now()
   LastRecvTime: number = Date.now()
-  private intervalTmrId: number = -1
+  private intervalTmrId: number | NodeJS.Timeout = -1
 
   //streamType 3:client 7:server 8:bidi
   constructor(api: string, v: number, streamType: number, reqType: any, resType: any, callOpt?: ICallOption) {
@@ -173,7 +173,7 @@ export class TRpcStream {
       this.callOpt.timeout = 30
     }
 
-    this.intervalTmrId = window.setInterval(() => {
+    this.intervalTmrId = globalThis.setInterval(() => {
       this.intervalCheck()
     }, 5000)
   }
@@ -186,7 +186,7 @@ export class TRpcStream {
   clearCall() {
     IntPubSub.unsubscribe(this.cid)
     if (this.intervalTmrId >= 0) {
-      clearInterval(this.intervalTmrId)
+      customClearInterval(this.intervalTmrId)
       this.intervalTmrId = -1
     }
   }
@@ -346,6 +346,16 @@ export interface IrpcCon {
   NatsSubscribeAgain(): void
 }
 
+function customClearInterval(handle?: number | undefined | NodeJS.Timeout): void {
+  // @ts-ignore
+  globalThis.clearInterval(handle)
+}
+
+function customClearTimeout(handle?: number | undefined | NodeJS.Timeout): void {
+  // @ts-ignore
+  globalThis.clearTimeout(handle)
+}
+
 export class TrpcCon implements IrpcCon {
   Sid: Uint8Array = new Uint8Array()
   wsUrl: string = ''
@@ -357,7 +367,7 @@ export class TrpcCon implements IrpcCon {
   SubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
 
   // 5分钟内ping一次服务器，以保持连接有效
-  private pingId: number | undefined = undefined
+  private pingId: number | NodeJS.Timeout | undefined = undefined
   // 超时时间单位为ms
   private pingCheckTimeout: number = 3 * 60 * 1000
   private pingMaxTimeout: number = 5 * 60 * 1000
@@ -425,7 +435,7 @@ export class TrpcCon implements IrpcCon {
     this.ping()
 
     // 启动定时器
-    this.pingId = window.setInterval(this.pingCheck.bind(this), this.pingCheckTimeout)
+    this.pingId = globalThis.setInterval(this.pingCheck.bind(this), this.pingCheckTimeout)
   }
 
   sendRpcData(rpcData: Uint8Array): boolean {
@@ -576,9 +586,9 @@ export class TrpcCon implements IrpcCon {
     console.log('ws closed:', ev)
     StrPubSub.publish('onclose', ev)
 
-    clearTimeout(this.pingId)
+    customClearTimeout(this.pingId)
 
-    window.setTimeout(() => {
+    globalThis.setTimeout(() => {
       if (this.isWsConnected()) {
         return
       }
@@ -724,12 +734,12 @@ export class TrpcCon implements IrpcCon {
     if (pongFn) {
       rpc.Optstr = '1'
     }
-    let timeoutId: number = window.setTimeout(() => {
+    let timeoutId: number | NodeJS.Timeout = globalThis.setTimeout(() => {
       IntPubSub.unsubscribe(rpc.Cid)
     }, 5000)
 
     const subscribePingRes = (resRpc: yrpcmsg.Ymsg) => {
-      clearTimeout(timeoutId)
+      customClearTimeout(timeoutId)
       if (pongFn) {
         let unixTime = UnixTime.decode(resRpc.Body)
         pongFn(resRpc, unixTime)
@@ -779,7 +789,7 @@ export class TrpcCon implements IrpcCon {
     if (!callOpt.timeout || callOpt.timeout <= 0) {
       callOpt.timeout = 30
     }
-    let timeoutId: number = window.setTimeout(() => {
+    let timeoutId: number | NodeJS.Timeout = globalThis.setTimeout(() => {
       IntPubSub.unsubscribe(rpc.Cid)
       callOpt?.OnTimeout?.()
     }, callOpt.timeout * 1000)
@@ -802,7 +812,7 @@ export class TrpcCon implements IrpcCon {
         default:
           console.log('unary call bad:res:', rpc, resRpc)
       }
-      clearTimeout(timeoutId)
+      customClearTimeout(timeoutId)
     }
     IntPubSub.subscribeOnce(rpc.Cid, subscribeCb.bind(this))
 
