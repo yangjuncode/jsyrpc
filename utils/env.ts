@@ -39,7 +39,7 @@ export function getEnv(): string {
     return _env
   }
 
-  // 浏览器环境
+  // 浏览器环境(非多端浏览器环境)
   if (typeof window !== 'undefined') {
     _env = ENV_TYPE.WEB
     return _env

@@ -107,8 +107,6 @@ export interface CloseSocketOptions {
   complete?: (result: GeneralCallbackResult) => void
 }
 
-type callbackOptions = SendSocketMessageOptions | CloseSocketOptions
-
 export interface SocketTask {
   /**
    * 通过 WebSocket 连接发送数据
@@ -142,7 +140,7 @@ export interface SocketTask {
 }
 
 export interface IRpcSocket {
-  readyState?: SocketState
+  readyState?: number
 
   connectSocket(options: ConnectSocketOption): SocketTask | undefined
 
@@ -166,11 +164,15 @@ export enum SocketState {
   CLOSED,
 }
 
+type callbackOptions = SendSocketMessageOptions | CloseSocketOptions
+
 const SocketEvents = [
   'onSocketClose', 'onSocketError', 'onSocketOpen', 'onSocketMessage',
 ]
 let socketTask: SocketTask | undefined = undefined
 let readyState: SocketState | null = null
+
+function emptyFn() {/* Empty Function */}
 
 function onSocketMessage(callback: (result: OnSocketMessageCallbackResult) => void): void {
   StrPubSub.subscribe('onSocketMessage', callback)
@@ -208,6 +210,28 @@ function clearSocket() {
     StrPubSub.unsubscribe(event)
   })
 }
+
+declare namespace uniApp {
+  interface Uni {
+    getSystemInfo(options: any): void;
+
+    connectSocket(options: ConnectSocketOption): SocketTask;
+
+    onSocketOpen(options: (result: OnSocketOpenCallbackResult) => void): void;
+
+    onSocketError(callback: (result: GeneralCallbackResult) => void): void;
+
+    sendSocketMessage(options: SendSocketMessageOptions): void;
+
+    onSocketMessage(callback: (result: OnSocketMessageCallbackResult) => void): void;
+
+    closeSocket(options: CloseSocketOptions): void;
+
+    onSocketClose(callback: (result: GeneralCallbackResult) => void): void;
+  }
+}
+
+declare const uni: uniApp.Uni
 
 // 处理uni-app多端框架SebSocket
 function rpcUniAppSocketImpl(): IRpcSocket {
@@ -271,28 +295,28 @@ function rpcUniAppSocketImpl(): IRpcSocket {
 
 // 处理WebSocket接口
 function rpcWebSocketImpl(): IRpcSocket {
+  DEV && console.log('rpcWebSocketImpl')
   let ws: WebSocket | null = null
   const execWsCmd = (fn: (ws: WebSocket) => void, options: callbackOptions) => {
+    const result: GeneralCallbackResult = {
+      errMsg: '',
+    }
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      options.fail?.({
-        errMsg: 'WebSocket not init!',
-      } as GeneralCallbackResult)
+      result.errMsg = 'WebSocket not init'
+      options.fail?.(result)
       return
     }
 
     try {
       fn(ws)
-      options.success?.({
-        errMsg: 'success',
-      } as GeneralCallbackResult)
+      result.errMsg = 'success'
+      options.success?.(result)
     } catch (e) {
-      options.fail?.({
-        errMsg: 'fail:' + e.toString(),
-      } as GeneralCallbackResult)
+      result.errMsg = 'fail:' + e.toString()
+      options.fail?.(result)
     } finally {
-      options.complete?.({
-        errMsg: 'complete',
-      } as GeneralCallbackResult)
+      result.errMsg = 'complete'
+      options.complete?.(result)
     }
   }
 
@@ -389,6 +413,108 @@ function rpcWebSocketImpl(): IRpcSocket {
   return socket
 }
 
+declare namespace wxApi {
+
+  interface SocketTaskOnCloseCallbackResult {
+    /** 一个数字值表示关闭连接的状态号，表示连接被关闭的原因。 */
+    code: number
+    /** 一个可读的字符串，表示连接被关闭的原因。 */
+    reason: string
+  }
+
+  interface Wx {
+    getSystemInfo(): any
+
+    connectSocket(options: ConnectSocketOption): SocketTask | undefined
+
+    sendSocketMessage(options: SendSocketMessageOptions): Promise<SendSocketMessageOptions>
+
+    onSocketMessage(callback: (result: OnSocketMessageCallbackResult) => void): void
+
+    onSocketOpen(callback: (result: OnSocketOpenCallbackResult) => void): void
+
+    onSocketError(callback: (result: GeneralCallbackResult) => void): void
+
+    onSocketClose(callback: (result: SocketTaskOnCloseCallbackResult) => void): void
+
+    closeSocket(options: CloseSocketOptions): Promise<CloseSocketOptions>
+  }
+}
+
+declare const wx: wxApi.Wx
+
+// 微信小程序 SebSocket
+function rpcWxSocketImpl(): IRpcSocket {
+  DEV && console.log('rpcWxSocketImpl')
+
+  const socket: IRpcSocket = {
+    connectSocket(options: ConnectSocketOption): SocketTask | undefined {
+      // 关闭上一个socket连接
+      if (socketTask) {
+        (socketTask as SocketTask).close({ code: 1000 })
+        clearSocket()
+      }
+
+      // 处理事件监听
+      wx.onSocketClose((res: wxApi.SocketTaskOnCloseCallbackResult) => {
+        DEV && console.warn('uni.onSocketClose:', res)
+        readyState = SocketState.CLOSED
+        const result: GeneralCallbackResult = {
+          errMsg: res.reason,
+        }
+        StrPubSub.publish('onSocketClose', result)
+      })
+      wx.onSocketError((res: GeneralCallbackResult) => {
+        DEV && console.error('uni.onSocketError:', res)
+        readyState = SocketState.CLOSING
+        const result: GeneralCallbackResult = {
+          errMsg: res.errMsg,
+        }
+        StrPubSub.publish('onSocketError', result)
+      })
+      wx.onSocketOpen((res: OnSocketOpenCallbackResult) => {
+        DEV && console.log('uni.onSocketOpen:', res)
+        readyState = SocketState.OPEN
+        const result: OnSocketOpenCallbackResult = {
+          ...res,
+        }
+        StrPubSub.publish('onSocketOpen', result)
+      })
+      wx.onSocketMessage((res: OnSocketMessageCallbackResult) => {
+        DEV && console.log('uni.onSocketMessage:', res)
+        const result: OnSocketMessageCallbackResult = {
+          ...res,
+        }
+        StrPubSub.publish('onSocketMessage', result)
+      })
+
+      readyState = SocketState.CONNECTING
+      socketTask = wx.connectSocket(options)
+
+      if (options.success || options.fail || options.complete) {
+        return socketTask
+      }
+
+      return undefined
+    },
+    sendSocketMessage(options: SendSocketMessageOptions): void {
+      wx.sendSocketMessage(options).then(emptyFn)
+    },
+    closeSocket(options: CloseSocketOptions): void {
+      wx.closeSocket(options).then(emptyFn)
+    },
+
+    onSocketMessage,
+    onSocketOpen,
+    onSocketError,
+    onSocketClose,
+  }
+
+  proxySocketReadState(socket)
+
+  return socket
+}
+
 // 优先判断是否多端环境，多端环境下，框架已经实现统一的WebSocket接口
 function getRpcSocket(): IRpcSocket {
   // 多端环境
@@ -400,9 +526,20 @@ function getRpcSocket(): IRpcSocket {
     return taro
   }
 
-  // 浏览器环境
-  if (typeof window !== 'undefined') {
+  // 浏览器环境(非多端浏览器环境)
+  if (env === ENV_TYPE.WEB) {
     return rpcWebSocketImpl()
+  }
+
+  // 各类小程序环境
+  // 微信小程序
+  if (env === ENV_TYPE.WX) {
+    return rpcWxSocketImpl()
+  }
+  // 支付宝小程序
+  if (env === ENV_TYPE.MY) {
+    // @ts-ignore
+    return taro
   }
 
   throw new Error('not impl rpc socket!!! env: ' + env)
