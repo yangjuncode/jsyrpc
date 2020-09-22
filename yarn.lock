@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+"@dcloudio/types@^2.0.7":
+  version "2.0.7"
+  resolved "https://registry.npm.taobao.org/@dcloudio/types/download/@dcloudio/types-2.0.7.tgz#b39f88ac8ac1909e0a0bf1064fe65e1660095602"
+  integrity sha1-s5+IrIrBkJ4KC/EGT+ZeFmAJVgI=
+
 "@protobufjs/aspromise@^1.1.1", "@protobufjs/aspromise@^1.1.2":
   version "1.1.2"
   resolved "https://registry.npmjs.org/@protobufjs/aspromise/-/aspromise-1.1.2.tgz#9b8b0cc663d669a7d8f6f5d0893a14d348f30fbf"
