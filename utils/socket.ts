@@ -1,4 +1,5 @@
 import { getEnv, ENV_TYPE } from './env'
+import { StrPubSub } from 'ypubsub'
 
 const DEV = process.env.NODE_ENV === 'development'
 const env = getEnv()
@@ -80,7 +81,7 @@ export interface OnSocketOpenCallbackResult {
   /**
    * 连接成功的 HTTP 响应 Header
    */
-  header: any
+  header?: any
 }
 
 export interface CloseSocketOptions {
@@ -165,63 +166,80 @@ export enum SocketState {
   CLOSED,
 }
 
-function setSocketCallback(events: Map<string, Function[]>, event: string, cb: Function): void {
-  const cbs = events.get(event)
-  const newCbs = cbs? cbs.concat([cb]): [cb]
-  events.set(event, newCbs)
+const SocketEvents = [
+  'onSocketClose', 'onSocketError', 'onSocketOpen', 'onSocketMessage',
+]
+let socketTask: SocketTask | undefined = undefined
+let readyState: SocketState | null = null
+
+function onSocketMessage(callback: (result: OnSocketMessageCallbackResult) => void): void {
+  StrPubSub.subscribe('onSocketMessage', callback)
+}
+
+function onSocketOpen(callback: (result: OnSocketOpenCallbackResult) => void): void {
+  StrPubSub.subscribe('onSocketOpen', callback)
+}
+
+function onSocketError(callback: (result: GeneralCallbackResult) => void): void {
+  StrPubSub.subscribe('onSocketError', callback)
+}
+
+function onSocketClose(callback: (result: GeneralCallbackResult) => void): void {
+  StrPubSub.subscribe('onSocketClose', callback)
+}
+
+// 设置socket连接状态, 只读
+function proxySocketReadState(socket: IRpcSocket): void {
+  Object.defineProperty(socket, 'readyState', {
+    get() {
+      return readyState
+    },
+    set(v: any) {
+      DEV && console.warn('[readyState] is readonly!')
+    },
+  })
+}
+
+// 清除闭包，避免内存泄露
+function clearSocket() {
+  socketTask = undefined
+  readyState = null
+  SocketEvents.forEach(event => {
+    StrPubSub.unsubscribe(event)
+  })
 }
 
 // 处理uni-app多端框架SebSocket
 function rpcUniAppSocketImpl(): IRpcSocket {
   DEV && console.log('rpcUniAppSocketImpl')
-  let socketTask: SocketTask | null = null
-  let readyState: SocketState | null = null
-  const callbacks: Map<string, Function[]> = new Map<string, Function[]>()
-  const setCallback = (event: string, callback: Function) => {
-    setSocketCallback(callbacks, event, callback)
-  }
 
   const socket: IRpcSocket = {
     connectSocket(options: ConnectSocketOption): SocketTask | undefined {
       // 关闭上一个socket连接
       if (socketTask) {
-        socketTask.close({ code: 1000 })
-        // 清除闭包，避免内存泄露
-        readyState = null
-        callbacks.clear()
+        (socketTask as SocketTask).close({ code: 1000 })
+        clearSocket()
       }
 
       // 处理事件监听
       uni.onSocketClose((result: GeneralCallbackResult) => {
         DEV && console.warn('uni.onSocketClose:', result)
         readyState = SocketState.CLOSED
-        const cbs = callbacks.get('onSocketClose')
-        cbs && cbs.forEach(cb => {
-          cb(result)
-        })
+        StrPubSub.publish('onSocketClose', result)
       })
       uni.onSocketError((result: GeneralCallbackResult) => {
         DEV && console.error('uni.onSocketError:', result)
         readyState = SocketState.CLOSING
-        const cbs = callbacks.get('onSocketError')
-        cbs && cbs.forEach(cb => {
-          cb(result)
-        })
+        StrPubSub.publish('onSocketError', result)
       })
       uni.onSocketOpen((result: OnSocketOpenCallbackResult) => {
         DEV && console.log('uni.onSocketOpen:', result)
         readyState = SocketState.OPEN
-        const cbs = callbacks.get('onSocketOpen')
-        cbs && cbs.forEach(cb => {
-          cb(result)
-        })
+        StrPubSub.publish('onSocketOpen', result)
       })
       uni.onSocketMessage((result: OnSocketMessageCallbackResult) => {
         DEV && console.log('uni.onSocketMessage:', result)
-        const cbs = callbacks.get('onSocketMessage')
-        cbs && cbs.forEach(cb => {
-          cb(result)
-        })
+        StrPubSub.publish('onSocketMessage', result)
       })
 
       readyState = SocketState.CONNECTING
@@ -233,52 +251,29 @@ function rpcUniAppSocketImpl(): IRpcSocket {
 
       return undefined
     },
-
     sendSocketMessage(options: SendSocketMessageOptions): void {
       uni.sendSocketMessage(options)
     },
-
-    onSocketMessage(callback: (result: OnSocketMessageCallbackResult) => void): void {
-      setCallback('onSocketMessage', callback)
-    },
-
-    onSocketOpen(callback: (result: OnSocketOpenCallbackResult) => void): void {
-      setCallback('onSocketOpen', callback)
-    },
-
-    onSocketError(callback: (result: GeneralCallbackResult) => void): void {
-      setCallback('onSocketError', callback)
-    },
-
-    onSocketClose(callback: (result: GeneralCallbackResult) => void): void {
-      setCallback('onSocketClose', callback)
-    },
-
     closeSocket(options: CloseSocketOptions): void {
       uni.closeSocket(options)
     },
+
+    onSocketMessage,
+    onSocketOpen,
+    onSocketError,
+    onSocketClose,
   }
 
-  // 设置socket连接状态, 只读
-  Object.defineProperty(socket, 'readyState', {
-    get() {
-      return readyState
-    },
-    set(v: any) {
-      DEV && console.warn('[readyState] is readonly!')
-    },
-  })
+  proxySocketReadState(socket)
 
   return socket
 }
 
 // 处理WebSocket接口
 function rpcWebSocketImpl(): IRpcSocket {
-  const callbacks: Map<string, Function[]> = new Map<string, Function[]>()
-  let readyState: SocketState | null = null
   let ws: WebSocket | null = null
-  const execWsGeneralFn = (ws: WebSocket | null, fn: (ws: WebSocket) => void, options: callbackOptions) => {
-    if (!ws) {
+  const execWsCmd = (fn: (ws: WebSocket) => void, options: callbackOptions) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
       options.fail?.({
         errMsg: 'WebSocket not init!',
       } as GeneralCallbackResult)
@@ -300,17 +295,13 @@ function rpcWebSocketImpl(): IRpcSocket {
       } as GeneralCallbackResult)
     }
   }
-  const setCallback = (event: string, callback: Function) => {
-    setSocketCallback(callbacks, event, callback)
-  }
 
   const socket: IRpcSocket = {
     connectSocket(options: ConnectSocketOption): SocketTask | undefined {
       if (ws) {
         ws.close(1000)
         ws = null
-        readyState = null
-        callbacks.clear()
+        clearSocket()
       }
 
       // 初始化WebSocket
@@ -322,67 +313,53 @@ function rpcWebSocketImpl(): IRpcSocket {
       ws.onclose = (ev: CloseEvent) => {
         DEV && console.warn('ws.onclose:', ev)
         readyState = SocketState.CLOSED
-        const cbs = callbacks.get('onSocketClose')
-        cbs && cbs.forEach(cb => {
-          const result: GeneralCallbackResult = {
-            errMsg: ev.reason,
-          }
-          cb(result)
-        })
+        const result: GeneralCallbackResult = {
+          errMsg: ev.reason,
+        }
+        StrPubSub.publish('onSocketClose', result)
       }
       ws.onerror = (ev: Event) => {
         DEV && console.error('ws.onerror:', ev)
         readyState = SocketState.CLOSING
-        const cbs = callbacks.get('onSocketError')
-        cbs && cbs.forEach(cb => {
-          const result: GeneralCallbackResult = {
-            errMsg: (ev.target as WebSocket).url,
-          }
-          cb(result)
-        })
+        const result: GeneralCallbackResult = {
+          errMsg: (ev.target as WebSocket).url,
+        }
+        StrPubSub.publish('onSocketError', result)
       }
       ws.onopen = (ev: Event) => {
         DEV && console.log('ws.onopen:', ev)
         readyState = SocketState.OPEN
-        const cbs = callbacks.get('onSocketOpen')
-        cbs && cbs.forEach(cb => {
-          const result: OnSocketOpenCallbackResult = {
-            header: null,
-          }
-          cb(result)
-        })
+        const result: OnSocketOpenCallbackResult = {}
+        StrPubSub.publish('onSocketOpen', result)
       }
       ws.onmessage = (ev: MessageEvent) => {
         DEV && console.log('ws.onmessage:', ev)
-        const cbs = callbacks.get('onSocketMessage')
-        cbs && cbs.forEach(cb => {
-          const result: OnSocketMessageCallbackResult = {
-            ...ev,
-            data: ev.data,
-          }
-          cb(result)
-        })
+        const result: OnSocketMessageCallbackResult = {
+          data: ev.data,
+        }
+        StrPubSub.publish('onSocketMessage', result)
       }
 
       if (options.success || options.fail || options.complete) {
-        const socketTask: SocketTask = {
+        const that = this
+        socketTask = {
           send(options: SendSocketMessageOptions): void {
-            socket.sendSocketMessage(options)
+            that.sendSocketMessage(options)
           },
           close(options: CloseSocketOptions): void {
-            socket.closeSocket(options)
+            that.closeSocket(options)
           },
           onOpen(callback: (result: OnSocketOpenCallbackResult) => void): void {
-            socket.onSocketOpen(callback)
+            that.onSocketOpen(callback)
           },
           onClose(callback: (result: any) => void): void {
-            socket.onSocketClose(callback)
+            that.onSocketClose(callback)
           },
           onError(callback: (result: GeneralCallbackResult) => void): void {
-            socket.onSocketError(callback)
+            that.onSocketError(callback)
           },
           onMessage(callback: (result: OnSocketMessageCallbackResult) => void): void {
-            socket.onSocketMessage(callback)
+            that.onSocketMessage(callback)
           },
         }
         return socketTask
@@ -390,45 +367,24 @@ function rpcWebSocketImpl(): IRpcSocket {
 
       return undefined
     },
-
     sendSocketMessage(options: SendSocketMessageOptions): void {
-      execWsGeneralFn(ws, (ws: WebSocket) => {
+      execWsCmd((ws: WebSocket) => {
         ws.send(options.data)
       }, options)
     },
-
-    onSocketMessage(callback: (result: OnSocketMessageCallbackResult) => void): void {
-      setCallback('onSocketMessage', callback)
-    },
-
-    onSocketOpen(callback: (result: OnSocketOpenCallbackResult) => void): void {
-      setCallback('onSocketOpen', callback)
-    },
-
-    onSocketError(callback: (result: GeneralCallbackResult) => void): void {
-      setCallback('onSocketError', callback)
-    },
-
-    onSocketClose(callback: (result: GeneralCallbackResult) => void): void {
-      setCallback('onSocketClose', callback)
-    },
-
     closeSocket(options: CloseSocketOptions): void {
-      execWsGeneralFn(ws, (ws: WebSocket) => {
+      execWsCmd((ws: WebSocket) => {
         ws.close(options.code, options.reason)
       }, options)
     },
+
+    onSocketMessage,
+    onSocketOpen,
+    onSocketError,
+    onSocketClose,
   }
 
-  // 设置socket连接状态, 只读
-  Object.defineProperty(socket, 'readyState', {
-    get() {
-      return readyState
-    },
-    set(v: any) {
-      DEV && console.warn('[readyState] is readonly!')
-    },
-  })
+  proxySocketReadState(socket)
 
   return socket
 }
@@ -453,5 +409,3 @@ function getRpcSocket(): IRpcSocket {
 }
 
 export const rpcSocket = getRpcSocket()
-
-export default rpcSocket
