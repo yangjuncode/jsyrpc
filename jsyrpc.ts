@@ -14,7 +14,7 @@ import {
   OnSocketOpenCallbackResult,
   rpcSocket,
   SocketState,
-} from 'utils/socket'
+} from './utils/socket'
 import 'core-js/features/global-this'
 
 function isCallbackInMap(key: string, callBack: Function, _map: Map<string, Function[]>): boolean {
@@ -380,9 +380,6 @@ export class TrpcCon implements IrpcCon {
   initWsCon(url: string) {
     this.wsUrl = url
 
-    rpcSocket.connectSocket({
-      url,
-    })
     rpcSocket.onSocketError((result) => {
       this.onWsErr(result)
     })
@@ -394,6 +391,10 @@ export class TrpcCon implements IrpcCon {
     })
     rpcSocket.onSocketMessage((result) => {
       this.onWsMsg(result)
+    })
+
+    rpcSocket.connectSocket({
+      url,
     })
   }
 
@@ -439,7 +440,7 @@ export class TrpcCon implements IrpcCon {
   }
 
   sendRpcData(rpcData: Uint8Array): boolean {
-    if (rpcSocket.readyState !== SocketState.OPEN) {
+    if (!this.isWsConnected()) {
       return false
     }
 
@@ -579,7 +580,7 @@ export class TrpcCon implements IrpcCon {
   }
 
   onWsErr(ev: Event | GeneralCallbackResult): void {
-    console.log('ws err:', ev)
+    console.error('ws err:', ev)
   }
 
   onWsClose(ev: CloseEvent | GeneralCallbackResult): void {
