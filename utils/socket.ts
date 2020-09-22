@@ -106,40 +106,42 @@ export interface CloseSocketOptions {
   complete?: (result: GeneralCallbackResult) => void
 }
 
+type callbackOptions = SendSocketMessageOptions | CloseSocketOptions
+
 export interface SocketTask {
   /**
    * 通过 WebSocket 连接发送数据
    */
-  send(options: SendSocketMessageOptions): void;
+  send(options: SendSocketMessageOptions): void
 
   /**
    * 关闭 WebSocket 连接
    */
-  close(options: CloseSocketOptions): void;
+  close(options: CloseSocketOptions): void
 
   /**
    * 监听 WebSocket 连接打开事件
    */
-  onOpen(callback: (result: OnSocketOpenCallbackResult) => void): void;
+  onOpen(callback: (result: OnSocketOpenCallbackResult) => void): void
 
   /**
    * 监听 WebSocket 连接关闭事件
    */
-  onClose(callback: (result: any) => void): void;
+  onClose(callback: (result: any) => void): void
 
   /**
    * 监听 WebSocket 错误
    */
-  onError(callback: (result: GeneralCallbackResult) => void): void;
+  onError(callback: (result: GeneralCallbackResult) => void): void
 
   /**
    * 监听WebSocket接受到服务器的消息事件
    */
-  onMessage(callback: (result: OnSocketMessageCallbackResult) => void): void;
+  onMessage(callback: (result: OnSocketMessageCallbackResult) => void): void
 }
 
 export interface IRpcSocket {
-  [key: string]: any
+  readonly readyState: SocketState
 
   connectSocket(options: ConnectSocketOption): SocketTask | undefined
 
@@ -156,15 +158,6 @@ export interface IRpcSocket {
   closeSocket(options: CloseSocketOptions): void
 }
 
-// const connectSocket = (() => {
-//   let socket
-//
-//   function connectSocket(options: ConnectSocketOption): SocketTask | undefined {
-//   }
-//
-//   return connectSocket
-// })()
-
 export enum SocketState {
   CONNECTING = 0,
   OPEN,
@@ -172,117 +165,153 @@ export enum SocketState {
   CLOSED,
 }
 
-// 在web浏览器环境下，使用该socket实例进行数据传输
-let socket: any
-
-// export const Socket: IRpcSocket = {
-//   readyState: SocketState.CLOSED,
-//   connectSocket(options: ConnectSocketOption): SocketTask | undefined {
-//     // return connectSocket.call(Socket, options)
-//     if (socket) {
-//       Socket.closeSocket({
-//         code: 1000,
-//       })
-//     }
-//
-//     this.readyState = SocketState.CONNECTING
-//
-//     // 浏览器环境
-//     if (typeof window !== 'undefined') {
-//       socket = new window.WebSocket(options.url)
-//       socket.binaryType = 'arraybuffer'
-//     }
-//
-//     if (options.success || options.fail || options.complete) {
-//       const socketTask: SocketTask = {
-//         send(options: SendSocketMessageOptions): void { },
-//         close(options: CloseSocketOptions): void {},
-//         onOpen(callback: (result: OnSocketOpenCallbackResult) => void): void {},
-//         onClose(callback: (result: any) => void): void {},
-//         onError(callback: (result: GeneralCallbackResult) => void): void {},
-//         onMessage(callback: (result: OnSocketMessageCallbackResult) => void): void {},
-//       }
-//
-//       return socketTask
-//     }
-//
-//   },
-//
-//   sendSocketMessage(options: SendSocketMessageOptions): void {},
-//
-//   onSocketMessage(callback: (result: OnSocketMessageCallbackResult) => void): void {},
-//
-//   onSocketOpen(callback: (result: OnSocketOpenCallbackResult) => void): void {
-//     this.readyState = SocketState.OPEN
-//   },
-//
-//   onSocketError(callback: (result: GeneralCallbackResult) => void): void {
-//     this.readyState = SocketState.CLOSING
-//   },
-//
-//   onSocketClose(callback: (result: GeneralCallbackResult) => void): void {
-//     this.readyState = SocketState.CLOSED
-//   },
-//
-//   closeSocket(options: CloseSocketOptions): void {
-//
-//   },
-// }
-
 function rpcSocketImpl(): IRpcSocket {
   const callbacks: Map<string, Function> = new Map<string, Function>()
-  const readyState: SocketState = SocketState.CLOSED
-
+  let readyState: SocketState = SocketState.CLOSED
   let ws: WebSocket | null = null
+  const execWsGeneralFn = (ws: WebSocket | null, fn: (ws: WebSocket) => void, options: callbackOptions) => {
+    if (!ws) {
+      options.fail?.({
+        errMsg: 'WebSocket not init!',
+      } as GeneralCallbackResult)
+      return
+    }
+
+    try {
+      fn(ws)
+      options.success?.({
+        errMsg: 'success',
+      } as GeneralCallbackResult)
+    } catch (e) {
+      options.fail?.({
+        errMsg: 'fail:' + e.toString(),
+      } as GeneralCallbackResult)
+    } finally {
+      options.complete?.({
+        errMsg: 'complete',
+      } as GeneralCallbackResult)
+    }
+  }
 
   const socket: IRpcSocket = {
-    readyState: SocketState.CLOSED,
+    readyState: SocketState.CONNECTING,
     connectSocket(options: ConnectSocketOption): SocketTask | undefined {
       if (ws) {
         ws.close(1000)
+        ws = null
+        callbacks.clear()
       }
 
       // 初始化WebSocket
+      readyState = SocketState.CONNECTING
       ws = new WebSocket(options.url)
       ws.binaryType = 'arraybuffer'
 
       // 处理事件监听
       ws.onclose = (ev: CloseEvent) => {
-        const cb = this.callbacks.get('onSocketClose')
+        DEV && console.warn('ws.onclose:', ev)
+        const cb = callbacks.get('onSocketClose')
         const result: GeneralCallbackResult = {
           errMsg: ev.reason,
         }
-        cb && cb(result)
+        cb?.(result)
+      }
+      ws.onerror = (ev: Event) => {
+        DEV && console.error('ws.onerror:', ev)
+        const cb = callbacks.get('onSocketError')
+        const result: GeneralCallbackResult = {
+          errMsg: (ev.target as WebSocket).url,
+        }
+        cb?.(result)
+      }
+      ws.onopen = (ev: Event) => {
+        DEV && console.log('ws.onopen:', ev)
+        const cb = callbacks.get('onSocketOpen')
+        const result: OnSocketOpenCallbackResult = {
+          header: null,
+        }
+        cb?.(result)
+      }
+      ws.onmessage = (ev: MessageEvent) => {
+        DEV && console.log('ws.onmessage:', ev)
+        const cb = callbacks.get('onSocketMessage')
+        const result: OnSocketMessageCallbackResult = {
+          ...ev,
+          data: ev.data,
+        }
+        cb?.(result)
+      }
+
+      if (options.success || options.fail || options.complete) {
+        const socketTask: SocketTask = {
+          send(options: SendSocketMessageOptions): void {
+            socket.sendSocketMessage(options)
+          },
+          close(options: CloseSocketOptions): void {
+            socket.closeSocket(options)
+          },
+          onOpen(callback: (result: OnSocketOpenCallbackResult) => void): void {
+            socket.onSocketOpen(callback)
+          },
+          onClose(callback: (result: any) => void): void {
+            socket.onSocketClose(callback)
+          },
+          onError(callback: (result: GeneralCallbackResult) => void): void {
+            socket.onSocketError(callback)
+          },
+          onMessage(callback: (result: OnSocketMessageCallbackResult) => void): void {
+            socket.onSocketMessage(callback)
+          },
+        }
+        return socketTask
       }
 
       return undefined
     },
 
-    sendSocketMessage(options: SendSocketMessageOptions): void {},
+    sendSocketMessage(options: SendSocketMessageOptions): void {
+      execWsGeneralFn(ws, (ws: WebSocket) => {
+        ws.send(options.data)
+      }, options)
+    },
 
     onSocketMessage(callback: (result: OnSocketMessageCallbackResult) => void): void {
-      this.callbacks.set('onSocketMessage', callback)
+      callbacks.set('onSocketMessage', callback)
     },
 
     onSocketOpen(callback: (result: OnSocketOpenCallbackResult) => void): void {
-      this.readyState = SocketState.OPEN
-      this.callbacks.set('onSocketOpen', callback)
+      readyState = SocketState.OPEN
+      callbacks.set('onSocketOpen', callback)
     },
 
     onSocketError(callback: (result: GeneralCallbackResult) => void): void {
-      this.readyState = SocketState.CLOSING
-      this.callbacks.set('onSocketError', callback)
+      readyState = SocketState.CLOSING
+      callbacks.set('onSocketError', callback)
     },
 
     onSocketClose(callback: (result: GeneralCallbackResult) => void): void {
-      this.readyState = SocketState.CLOSED
-      this.callbacks.set('onSocketClose', callback)
+      readyState = SocketState.CLOSED
+      callbacks.set('onSocketClose', callback)
     },
 
     closeSocket(options: CloseSocketOptions): void {
-
+      execWsGeneralFn(ws, (ws: WebSocket) => {
+        ws.close(options.code, options.reason)
+      }, options)
     },
   }
+
+  Object.defineProperty(socket, 'readyState', {
+    writable: false,
+    enumerable: false,
+    configurable: false,
+    get(): any {
+      return readyState
+    },
+    set(v: any) {
+      DEV && console.warn('readyState is readonly')
+    },
+  })
 
   return socket
 }
