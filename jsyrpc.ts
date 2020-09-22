@@ -12,7 +12,7 @@ import {
   GeneralCallbackResult,
   OnSocketMessageCallbackResult,
   OnSocketOpenCallbackResult,
-  rpcSocket as Socket,
+  rpcSocket,
   SocketState,
 } from 'utils/socket'
 import 'core-js/features/global-this'
@@ -349,7 +349,6 @@ export interface IrpcCon {
 export class TrpcCon implements IrpcCon {
   Sid: Uint8Array = new Uint8Array()
   wsUrl: string = ''
-  wsCon: WebSocket | null = null
   LastRecvTime: number = -1
   LastSendTime: number = -1
   private cid: number = 1
@@ -371,28 +370,25 @@ export class TrpcCon implements IrpcCon {
   initWsCon(url: string) {
     this.wsUrl = url
 
-    Socket.connectSocket({
+    rpcSocket.connectSocket({
       url,
     })
-    Socket.onSocketError((result) => {
+    rpcSocket.onSocketError((result) => {
       this.onWsErr(result)
     })
-    Socket.onSocketClose((result) => {
+    rpcSocket.onSocketClose((result) => {
       this.onWsClose(result)
     })
-    Socket.onSocketOpen((result) => {
+    rpcSocket.onSocketOpen((result) => {
       this.onWsOpen(result)
     })
-    Socket.onSocketMessage((result) => {
+    rpcSocket.onSocketMessage((result) => {
       this.onWsMsg(result)
     })
   }
 
   isWsConnected(): boolean {
-    if (!this.wsCon) {
-      return false
-    }
-    return Socket.readyState === SocketState.OPEN
+    return rpcSocket.readyState === SocketState.OPEN
   }
 
   pingCheck() {
@@ -433,14 +429,11 @@ export class TrpcCon implements IrpcCon {
   }
 
   sendRpcData(rpcData: Uint8Array): boolean {
-    if (!this.wsCon) {
-      return false
-    }
-    if (this.wsCon.readyState !== WebSocket.OPEN) {
+    if (rpcSocket.readyState !== SocketState.OPEN) {
       return false
     }
 
-    this.wsCon.send(rpcData)
+    rpcSocket.sendSocketMessage({ data: rpcData })
     this.LastSendTime = Date.now()
 
     return true
@@ -580,7 +573,6 @@ export class TrpcCon implements IrpcCon {
   }
 
   onWsClose(ev: CloseEvent | GeneralCallbackResult): void {
-    this.wsCon = null
     console.log('ws closed:', ev)
     StrPubSub.publish('onclose', ev)
 
