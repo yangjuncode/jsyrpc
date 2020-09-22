@@ -166,7 +166,7 @@ export enum SocketState {
 }
 
 function rpcSocketImpl(): IRpcSocket {
-  const callbacks: Map<string, Function> = new Map<string, Function>()
+  const callbacks: Map<string, Function[]> = new Map<string, Function[]>()
   let readyState: SocketState = SocketState.CLOSED
   let ws: WebSocket | null = null
   const execWsGeneralFn = (ws: WebSocket | null, fn: (ws: WebSocket) => void, options: callbackOptions) => {
@@ -192,6 +192,11 @@ function rpcSocketImpl(): IRpcSocket {
       } as GeneralCallbackResult)
     }
   }
+  const setCallback = (event: string, callback: Function) => {
+    const cbs = callbacks.get(event)
+    const newCbs = cbs? cbs.concat([callback]): [callback]
+    callbacks.set(event, newCbs)
+  }
 
   const socket: IRpcSocket = {
     readyState: SocketState.CONNECTING,
@@ -210,36 +215,44 @@ function rpcSocketImpl(): IRpcSocket {
       // 处理事件监听
       ws.onclose = (ev: CloseEvent) => {
         DEV && console.warn('ws.onclose:', ev)
-        const cb = callbacks.get('onSocketClose')
-        const result: GeneralCallbackResult = {
-          errMsg: ev.reason,
-        }
-        cb?.(result)
+        const cbs = callbacks.get('onSocketClose')
+        cbs && cbs.forEach(cb => {
+          const result: GeneralCallbackResult = {
+            errMsg: ev.reason,
+          }
+          cb(result)
+        })
       }
       ws.onerror = (ev: Event) => {
         DEV && console.error('ws.onerror:', ev)
-        const cb = callbacks.get('onSocketError')
-        const result: GeneralCallbackResult = {
-          errMsg: (ev.target as WebSocket).url,
-        }
-        cb?.(result)
+        const cbs = callbacks.get('onSocketError')
+        cbs && cbs.forEach(cb => {
+          const result: GeneralCallbackResult = {
+            errMsg: (ev.target as WebSocket).url,
+          }
+          cb(result)
+        })
       }
       ws.onopen = (ev: Event) => {
         DEV && console.log('ws.onopen:', ev)
-        const cb = callbacks.get('onSocketOpen')
-        const result: OnSocketOpenCallbackResult = {
-          header: null,
-        }
-        cb?.(result)
+        const cbs = callbacks.get('onSocketOpen')
+        cbs && cbs.forEach(cb => {
+          const result: OnSocketOpenCallbackResult = {
+            header: null,
+          }
+          cb(result)
+        })
       }
       ws.onmessage = (ev: MessageEvent) => {
         DEV && console.log('ws.onmessage:', ev)
-        const cb = callbacks.get('onSocketMessage')
-        const result: OnSocketMessageCallbackResult = {
-          ...ev,
-          data: ev.data,
-        }
-        cb?.(result)
+        const cbs = callbacks.get('onSocketMessage')
+        cbs && cbs.forEach(cb => {
+          const result: OnSocketMessageCallbackResult = {
+            ...ev,
+            data: ev.data,
+          }
+          cb(result)
+        })
       }
 
       if (options.success || options.fail || options.complete) {
@@ -276,22 +289,22 @@ function rpcSocketImpl(): IRpcSocket {
     },
 
     onSocketMessage(callback: (result: OnSocketMessageCallbackResult) => void): void {
-      callbacks.set('onSocketMessage', callback)
+      setCallback('onSocketMessage', callback)
     },
 
     onSocketOpen(callback: (result: OnSocketOpenCallbackResult) => void): void {
       readyState = SocketState.OPEN
-      callbacks.set('onSocketOpen', callback)
+      setCallback('onSocketOpen', callback)
     },
 
     onSocketError(callback: (result: GeneralCallbackResult) => void): void {
       readyState = SocketState.CLOSING
-      callbacks.set('onSocketError', callback)
+      setCallback('onSocketError', callback)
     },
 
     onSocketClose(callback: (result: GeneralCallbackResult) => void): void {
       readyState = SocketState.CLOSED
-      callbacks.set('onSocketClose', callback)
+      setCallback('onSocketClose', callback)
     },
 
     closeSocket(options: CloseSocketOptions): void {
