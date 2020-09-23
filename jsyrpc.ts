@@ -8,13 +8,13 @@ import IGrpcMeta = yrpcmsg.IGrpcMeta
 import GrpcMeta = yrpcmsg.GrpcMeta
 import UnixTime = yrpcmsg.UnixTime
 import { str2uint8array } from 'yrpcjsutil'
+import { rpcSocket } from './utils/socket'
+import { SocketState } from './utils/common'
 import {
   GeneralCallbackResult,
   OnSocketMessageCallbackResult,
   OnSocketOpenCallbackResult,
-  rpcSocket,
-  SocketState,
-} from './utils/socket'
+} from './utils/socket.types'
 import 'core-js/features/global-this'
 
 function isCallbackInMap(key: string, callBack: Function, _map: Map<string, Function[]>): boolean {
