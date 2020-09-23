@@ -3,6 +3,7 @@ import * as socketTypes from './socket.types'
 import { implUniSocket } from './uni.socket'
 import { implWebSocket } from './web.socket'
 import { implWxSocket } from './wx.socket'
+import { implMySocket } from './my.socket'
 
 const env = getEnv()
 
@@ -29,8 +30,7 @@ function getRpcSocket(): socketTypes.IRpcSocket {
   }
   // 支付宝小程序
   if (env === ENV_TYPE.MY) {
-    // @ts-ignore
-    return taro
+    return implMySocket()
   }
 
   throw new Error('not impl rpc socket!!! env: ' + env)

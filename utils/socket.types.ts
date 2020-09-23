@@ -1,4 +1,3 @@
-
 export interface ConnectSocketOption {
   /**
    * 开发者服务器接口地址，必须是 wss 协议，且域名必须是后台配置的合法域名
@@ -48,6 +47,7 @@ export interface GeneralCallbackResult {
 export interface SendSocketMessageOptions {
   /**
    * 需要发送的内容
+   * 支付宝小程序下必须为string 需要发送的内容：普通的文本内容 String 或者经 Base64 编码后的 String。
    */
   data: string | ArrayBuffer
   /**
@@ -62,6 +62,12 @@ export interface SendSocketMessageOptions {
    * 接口调用结束的回调函数（调用成功、失败都会执行）
    */
   complete?: (result: GeneralCallbackResult) => void
+  /**
+   * 支付宝小程序专用
+   * 如果发送二进制数据，需要将入参数据经 Base64 编码成 String 后赋值 data，同时将此字段设置为 true。
+   * 如果是普通的文本内容 String，则不需要设置此字段。
+   */
+  isBuffer?: boolean
 }
 
 export interface OnSocketMessageCallbackResult {
@@ -69,6 +75,10 @@ export interface OnSocketMessageCallbackResult {
    * 服务器返回的消息
    */
   data: string | ArrayBuffer
+  /**
+   * 支付宝专用，标记响应数据是否为ArrayBuffer
+   */
+  isBuffer?: boolean
 }
 
 export interface OnSocketOpenCallbackResult {
@@ -110,7 +120,7 @@ export interface SocketTask {
   /**
    * 关闭 WebSocket 连接
    */
-  close(options: CloseSocketOptions): void
+  close(options?: CloseSocketOptions): void
 
   /**
    * 监听 WebSocket 连接打开事件

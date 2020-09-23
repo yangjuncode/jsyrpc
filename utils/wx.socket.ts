@@ -59,7 +59,7 @@ export function implWxSocket(): socketTypes.IRpcSocket {
 
       // 处理事件监听
       wx.onSocketClose((res: wxApi.SocketTaskOnCloseCallbackResult) => {
-        DEV && console.warn('uni.onSocketClose:', res)
+        DEV && console.warn('wx.onSocketClose:', res)
         ReadyState.set(SocketState.CLOSED)
         const result: socketTypes.GeneralCallbackResult = {
           errMsg: res.reason,
@@ -67,7 +67,7 @@ export function implWxSocket(): socketTypes.IRpcSocket {
         StrPubSub.publish('onSocketClose', result)
       })
       wx.onSocketError((res: socketTypes.GeneralCallbackResult) => {
-        DEV && console.error('uni.onSocketError:', res)
+        DEV && console.error('wx.onSocketError:', res)
         ReadyState.set(SocketState.CLOSING)
         const result: socketTypes.GeneralCallbackResult = {
           errMsg: res.errMsg,
@@ -75,12 +75,12 @@ export function implWxSocket(): socketTypes.IRpcSocket {
         StrPubSub.publish('onSocketError', result)
       })
       wx.onSocketOpen((result: socketTypes.OnSocketOpenCallbackResult) => {
-        DEV && console.log('uni.onSocketOpen:', result)
+        DEV && console.log('wx.onSocketOpen:', result)
         ReadyState.set(SocketState.OPEN)
         StrPubSub.publish('onSocketOpen', result)
       })
       wx.onSocketMessage((result: socketTypes.OnSocketMessageCallbackResult) => {
-        DEV && console.log('uni.onSocketMessage:', result)
+        DEV && console.log('wx.onSocketMessage:', result)
         StrPubSub.publish('onSocketMessage', result)
       })
 
