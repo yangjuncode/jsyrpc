@@ -1,6 +1,5 @@
 import { getEnv, ENV_TYPE } from './env'
 import * as socketTypes from './socket.types'
-import { implUniSocket } from './uni.socket'
 import { implWebSocket } from './web.socket'
 import { implWxSocket } from './wx.socket'
 import { implMySocket } from './my.socket'
@@ -11,7 +10,7 @@ const env = getEnv()
 function getRpcSocket(): socketTypes.IRpcSocket {
   // 多端环境
   if (env === ENV_TYPE.UNI) {
-    return implUniSocket()
+    return require('./uni.socket').implUniSocket
   }
   if (env === ENV_TYPE.TARO) {
     // @ts-ignore

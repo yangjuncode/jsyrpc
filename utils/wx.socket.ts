@@ -1,5 +1,5 @@
 import { StrPubSub } from 'ypubsub'
-import * as socketTypes from 'utils/socket.types'
+import * as socketTypes from './socket.types'
 import {
   onSocketClose,
   onSocketError,
@@ -12,7 +12,7 @@ import {
   DEV,
   SocketTask,
   ReadyState,
-} from 'utils/common'
+} from './common'
 
 declare namespace wxApi {
 

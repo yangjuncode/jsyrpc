@@ -1,6 +1,6 @@
 import { StrPubSub } from 'ypubsub'
 import base64 from '@protobufjs/base64'
-import * as socketTypes from 'utils/socket.types'
+import * as socketTypes from './socket.types'
 import {
   onSocketClose,
   onSocketError,
@@ -13,7 +13,7 @@ import {
   DEV,
   SocketTask,
   ReadyState,
-} from 'utils/common'
+} from './common'
 
 declare namespace myApp {
   interface My {
