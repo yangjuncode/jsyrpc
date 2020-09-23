@@ -7,6 +7,7 @@ import {
   onSocketOpen,
   proxySocketReadState,
   clearSocket,
+  createSocketTask,
   SocketState,
   DEV,
   SocketTask,
@@ -87,27 +88,7 @@ export function implWebSocket(): socketTypes.IRpcSocket {
       }
 
       if (options.success || options.fail || options.complete) {
-        const that = this
-        const socketTask: socketTypes.SocketTask = {
-          send(options: socketTypes.SendSocketMessageOptions): void {
-            that.sendSocketMessage(options)
-          },
-          close(options: socketTypes.CloseSocketOptions): void {
-            that.closeSocket(options)
-          },
-          onOpen(callback: (result: socketTypes.OnSocketOpenCallbackResult) => void): void {
-            that.onSocketOpen(callback)
-          },
-          onClose(callback: (result: any) => void): void {
-            that.onSocketClose(callback)
-          },
-          onError(callback: (result: socketTypes.GeneralCallbackResult) => void): void {
-            that.onSocketError(callback)
-          },
-          onMessage(callback: (result: socketTypes.OnSocketMessageCallbackResult) => void): void {
-            that.onSocketMessage(callback)
-          },
-        }
+        const socketTask = createSocketTask(this)
         SocketTask.set(socketTask)
 
         return socketTask

@@ -72,3 +72,26 @@ export function clearSocket() {
     StrPubSub.unsubscribe(event)
   })
 }
+
+export function createSocketTask(ctx: socketTypes.IRpcSocket): socketTypes.SocketTask {
+  return {
+    send(options: socketTypes.SendSocketMessageOptions): void {
+      ctx.sendSocketMessage(options)
+    },
+    close(options: socketTypes.CloseSocketOptions): void {
+      ctx.closeSocket(options)
+    },
+    onOpen(callback: (result: socketTypes.OnSocketOpenCallbackResult) => void): void {
+      ctx.onSocketOpen(callback)
+    },
+    onClose(callback: (result: any) => void): void {
+      ctx.onSocketClose(callback)
+    },
+    onError(callback: (result: socketTypes.GeneralCallbackResult) => void): void {
+      ctx.onSocketError(callback)
+    },
+    onMessage(callback: (result: socketTypes.OnSocketMessageCallbackResult) => void): void {
+      ctx.onSocketMessage(callback)
+    },
+  }
+}
