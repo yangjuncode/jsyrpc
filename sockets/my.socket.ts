@@ -84,7 +84,6 @@ export function implSocket(): socketTypes.IRpcSocket {
         StrPubSub.publish('onSocketOpen', result)
       })
       my.onSocketMessage((result: socketTypes.OnSocketMessageCallbackResult) => {
-        DEV && console.log('my.onSocketMessage:', result)
         // 将字符串转换为ArrayBuffer
         if (!result.isBuffer) {
           const data = new Uint8Array()

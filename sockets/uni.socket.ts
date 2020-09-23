@@ -65,7 +65,6 @@ export function implSocket(): socketTypes.IRpcSocket {
         StrPubSub.publish('onSocketOpen', result)
       })
       uni.onSocketMessage((result: socketTypes.OnSocketMessageCallbackResult) => {
-        DEV && console.log('uni.onSocketMessage:', result)
         StrPubSub.publish('onSocketMessage', result)
       })
 

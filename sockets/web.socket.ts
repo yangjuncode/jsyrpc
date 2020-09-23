@@ -80,7 +80,6 @@ export function implSocket(): socketTypes.IRpcSocket {
         StrPubSub.publish('onSocketOpen', result)
       }
       ws.onmessage = (ev: MessageEvent) => {
-        DEV && console.log('ws.onmessage:', ev)
         const result: socketTypes.OnSocketMessageCallbackResult = {
           data: ev.data,
         }

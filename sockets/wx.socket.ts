@@ -80,7 +80,6 @@ export function implSocket(): socketTypes.IRpcSocket {
         StrPubSub.publish('onSocketOpen', result)
       })
       wx.onSocketMessage((result: socketTypes.OnSocketMessageCallbackResult) => {
-        DEV && console.log('wx.onSocketMessage:', result)
         StrPubSub.publish('onSocketMessage', result)
       })
 
