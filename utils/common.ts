@@ -1,4 +1,4 @@
-import * as socketTypes from 'utils/socket.types'
+import * as socketTypes from './socket.types'
 import { StrPubSub } from 'ypubsub'
 
 export function emptyFn() {/* Empty Function */}

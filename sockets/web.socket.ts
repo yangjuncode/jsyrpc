@@ -1,5 +1,5 @@
 import { StrPubSub } from 'ypubsub'
-import * as socketTypes from './socket.types'
+import * as socketTypes from '../utils/socket.types'
 import {
   onSocketClose,
   onSocketError,
@@ -12,12 +12,12 @@ import {
   DEV,
   SocketTask,
   ReadyState,
-} from './common'
+} from '../utils/common'
 
 type callbackOptions = socketTypes.SendSocketMessageOptions | socketTypes.CloseSocketOptions
 
 // 处理WebSocket接口
-export function implWebSocket(): socketTypes.IRpcSocket {
+export function implSocket(): socketTypes.IRpcSocket {
   DEV && console.log('implWebSocket')
   let ws: WebSocket | null = null
   const execWsCmd = (fn: (ws: WebSocket) => void, options: callbackOptions) => {

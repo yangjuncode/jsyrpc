@@ -1,6 +1,6 @@
 import { StrPubSub } from 'ypubsub'
 import base64 from '@protobufjs/base64'
-import * as socketTypes from './socket.types'
+import * as socketTypes from '../utils/socket.types'
 import {
   onSocketClose,
   onSocketError,
@@ -13,7 +13,7 @@ import {
   DEV,
   SocketTask,
   ReadyState,
-} from './common'
+} from '../utils/common'
 
 declare namespace myApp {
   interface My {
@@ -54,7 +54,7 @@ function offSocketEvents() {
 }
 
 // 支付宝SebSocket
-export function implMySocket(): socketTypes.IRpcSocket {
+export function implSocket(): socketTypes.IRpcSocket {
   DEV && console.log('implMySocket')
 
   const socket: socketTypes.IRpcSocket = {

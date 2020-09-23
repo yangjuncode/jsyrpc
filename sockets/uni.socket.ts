@@ -1,5 +1,5 @@
 import { StrPubSub } from 'ypubsub'
-import * as socketTypes from './socket.types'
+import * as socketTypes from '../utils/socket.types'
 import {
   onSocketClose,
   onSocketError,
@@ -11,7 +11,7 @@ import {
   DEV,
   SocketTask,
   ReadyState,
-} from './common'
+} from '../utils/common'
 
 declare namespace uniApp {
   interface Uni {
@@ -36,7 +36,7 @@ declare namespace uniApp {
 declare const uni: uniApp.Uni
 
 // 处理uni-app多端框架SebSocket
-export function implUniSocket(): socketTypes.IRpcSocket {
+export function implSocket(): socketTypes.IRpcSocket {
   DEV && console.log('implUniSocket')
 
   const socket: socketTypes.IRpcSocket = {

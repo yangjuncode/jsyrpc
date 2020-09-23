@@ -1,5 +1,5 @@
 import { StrPubSub } from 'ypubsub'
-import * as socketTypes from './socket.types'
+import * as socketTypes from '../utils/socket.types'
 import {
   onSocketClose,
   onSocketError,
@@ -12,7 +12,7 @@ import {
   DEV,
   SocketTask,
   ReadyState,
-} from './common'
+} from '../utils/common'
 
 declare namespace wxApi {
 
@@ -45,7 +45,7 @@ declare namespace wxApi {
 declare const wx: wxApi.Wx
 
 // 微信小程序 SebSocket
-export function implWxSocket(): socketTypes.IRpcSocket {
+export function implSocket(): socketTypes.IRpcSocket {
   DEV && console.log('implWxSocket')
 
   const socket: socketTypes.IRpcSocket = {
