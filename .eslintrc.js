@@ -82,7 +82,7 @@ module.exports = {
     'space-before-function-paren': [
       'warn',
       {
-        anonymous: 'never',
+        anonymous: 'always',
         named: 'never',
         asyncArrow: 'always',
       },
