@@ -12,6 +12,7 @@ import { rpcSocket } from './utils/socket'
 import { SocketState } from './utils/common'
 import {
   GeneralCallbackResult,
+  NetworkStatusChangeResult,
   OnSocketMessageCallbackResult,
   OnSocketOpenCallbackResult,
 } from './utils/socket.types'
@@ -148,11 +149,11 @@ export class TRpcStream {
   metaInfo?: IMeta
 
   //是否已经收到stream调用的回应
-  StreamSetupOK: boolean = false
+  StreamSetupOK = false
 
   //streamType 1:client 2:server 3:bidi
   streamType: number
-  private newNo: number = 0
+  private newNo = 0
   LastSendTime: number = Date.now()
   LastRecvTime: number = Date.now()
   private intervalTmrId: number | NodeJS.Timeout = -1
@@ -318,7 +319,7 @@ export class TRpcStream {
   }
 
   intervalCheck() {
-    let nowTime = Date.now()
+    // let nowTime = Date.now()
     //todo intervalCheck
   }
 
@@ -343,6 +344,8 @@ export interface IrpcCon {
 
   on(event: string, cb: Function): void
 
+  off(event?: string | string[], cb?: Function): void
+
   NatsSubscribeAgain(): void
 }
 
@@ -356,12 +359,18 @@ function customClearTimeout(handle?: number | undefined | NodeJS.Timeout): void 
   globalThis.clearTimeout(handle)
 }
 
+enum SocketCloseCode {
+  Unknown = 4000,
+  PingTimeout,
+  Offline,
+}
+
 export class TrpcCon implements IrpcCon {
   Sid: Uint8Array = new Uint8Array()
-  wsUrl: string = ''
-  LastRecvTime: number = -1
-  LastSendTime: number = -1
-  private cid: number = 1
+  wsUrl = ''
+  LastRecvTime = -1
+  LastSendTime = -1
+  private cid = 1
 
   OnceSubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
   SubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
@@ -371,14 +380,21 @@ export class TrpcCon implements IrpcCon {
   // 超时时间单位为ms
   private pingCheckTimeout: number = 3 * 60 * 1000
   private pingMaxTimeout: number = 5 * 60 * 1000
-  private lastPingCheckTime: number = 0
+  private lastPingCheckTime = 0
 
   on(event: string, cb: Function): void {
     StrPubSub.subscribe(event, cb)
   }
 
+  off(event?: string | string[], cb?: Function): void {
+    StrPubSub.unsubscribe(event, cb)
+  }
+
   initWsCon(url: string) {
     this.wsUrl = url
+
+    // 每次连接，都清除之前的socket生命周期事件的订阅
+    rpcSocket.clearSocketEvent()
 
     rpcSocket.onSocketError((result) => {
       this.onWsErr(result)
@@ -393,9 +409,36 @@ export class TrpcCon implements IrpcCon {
       this.onWsMsg(result)
     })
 
+    rpcSocket.onNetworkStatusChange(this._onNetworkStatusChange)
+
     rpcSocket.connectSocket({
       url,
     })
+  }
+
+  _online(){
+    // 网络重新连接后，将重连定时器重置5s，并重新连接
+    this._connectTimeout = 5000
+    this.initWsCon(this.wsUrl)
+  }
+  
+  _offline() {
+    // 网络断开，强制关闭socket连接
+    this._isCloseForce = true
+    rpcSocket.closeSocketForce({
+      code: SocketCloseCode.Offline,
+      reason: 'offline'
+    })
+  }
+  
+  _onNetworkStatusChange(res: NetworkStatusChangeResult){
+    if (res.isConnected) {
+      // online
+      this._online()
+    } else {
+      // offline
+      this._offline()
+    }
   }
 
   isWsConnected(): boolean {
@@ -583,30 +626,48 @@ export class TrpcCon implements IrpcCon {
     console.error('ws err:', ev)
   }
 
+  // 默认5000重连webSocket
+  _connectTimeout = 5000
+
+  _getSocketConnectTimeout(): number {
+    // 重连间隔最大为5分钟
+    const maxTime = 5 * 60 * 1000
+    if (this._connectTimeout >= maxTime) {
+      this._connectTimeout = maxTime
+    } else {
+      this._connectTimeout += 1000
+    }
+
+    return this._connectTimeout
+  }
+
   onWsClose(ev: CloseEvent | GeneralCallbackResult): void {
     console.log('ws closed:', ev)
     StrPubSub.publish('onclose', ev)
 
     customClearTimeout(this.pingId)
+    rpcSocket.offNetworkStatusChange()
 
     globalThis.setTimeout(() => {
       if (this.isWsConnected()) {
         return
       }
       this.initWsCon(this.wsUrl)
-    }, 3000)
+    }, this._getSocketConnectTimeout())
   }
 
   onWsOpen(ev: Event | OnSocketOpenCallbackResult) {
     console.log('ws open:', ev)
     StrPubSub.publish('onopen', ev)
     this.autoPing()
+    this._connectTimeout = 5000
+    this._isCloseForce = false
   }
 
   _NatsSubscribeAgain(subscribeList: Map<string, Function[]>) {
     const SubscribeList = subscribeList.entries()
     for (let [subject, callbackList] of SubscribeList) {
-      callbackList.forEach(FnMsg => {
+      callbackList.forEach(() => {
         const rpc = new yrpcmsg.Ymsg()
         rpc.Cmd = 10
         rpc.Res = 1
@@ -699,15 +760,12 @@ export class TrpcCon implements IrpcCon {
   }
 
   NewCid(): number {
-
-    while (true) {
-      let newCid = this.genCid()
-      if (IntPubSub.hasSubscribe(newCid)) {
-        continue
-      }
-      return newCid
+    let newCid = this.genCid()
+    while (IntPubSub.hasSubscribe(newCid)) {
+      newCid = this.genCid()
     }
 
+    return newCid
   }
 
   private genCid(): number {
@@ -728,6 +786,8 @@ export class TrpcCon implements IrpcCon {
     this.sendRpc(resMsg)
   }
 
+  _isCloseForce = false
+
   ping(pongFn?: IPong): void {
     let rpc = new yrpcmsg.Ymsg()
     rpc.Cmd = 14
@@ -737,7 +797,15 @@ export class TrpcCon implements IrpcCon {
     }
     let timeoutId: number | NodeJS.Timeout = globalThis.setTimeout(() => {
       IntPubSub.unsubscribe(rpc.Cid)
-    }, 5000)
+      // ping不通，表示连接有问题，主动关闭webSocket
+      if (!this._isCloseForce) {
+        this._isCloseForce = true
+        rpcSocket.closeSocketForce({
+          code: SocketCloseCode.PingTimeout,
+          reason: 'ping timeout'
+        })
+      }
+    }, 5 * 1000)
 
     const subscribePingRes = (resRpc: yrpcmsg.Ymsg) => {
       customClearTimeout(timeoutId)
@@ -749,7 +817,6 @@ export class TrpcCon implements IrpcCon {
 
     IntPubSub.subscribeOnce(rpc.Cid, subscribePingRes.bind(this))
     this.sendRpc(rpc)
-
   }
 
   onping(rpc: yrpcmsg.Ymsg) {

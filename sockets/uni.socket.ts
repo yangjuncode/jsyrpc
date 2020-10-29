@@ -7,6 +7,7 @@ import {
   onSocketOpen,
   proxySocketReadState,
   clearSocket,
+  clearSocketEvent,
   SocketState,
   DEV,
   SocketTask,
@@ -30,7 +31,11 @@ declare namespace uniApp {
     closeSocket(options: socketTypes.CloseSocketOptions): void;
 
     onSocketClose(callback: (result: socketTypes.GeneralCallbackResult) => void): void;
-  }
+ 
+    onNetworkStatusChange (callback: socketTypes.NetworkStatusChangeCallback): void
+    
+    offNetworkStatusChange (callback?: socketTypes.NetworkStatusChangeCallback): void
+ }
 }
 
 declare const uni: uniApp.Uni
@@ -38,6 +43,10 @@ declare const uni: uniApp.Uni
 // 处理uni-app多端框架SebSocket
 export function implSocket(): socketTypes.IRpcSocket {
   DEV && console.log('implUniSocket')
+
+  let isCloseForce = false
+  let onNetworkStatusChange: socketTypes.NetworkStatusChangeCallback | null = null
+  let isOffNetworkStatusChange = false
 
   const socket: socketTypes.IRpcSocket = {
     connectSocket(options: socketTypes.ConnectSocketOption): socketTypes.SocketTask | undefined {
@@ -50,11 +59,13 @@ export function implSocket(): socketTypes.IRpcSocket {
 
       // 处理事件监听
       uni.onSocketClose((result: socketTypes.GeneralCallbackResult) => {
+        if (isCloseForce) { return }
         DEV && console.warn('uni.onSocketClose:', result)
         ReadyState.set(SocketState.CLOSED)
         StrPubSub.publish('onSocketClose', result)
       })
       uni.onSocketError((result: socketTypes.GeneralCallbackResult) => {
+        if (isCloseForce) { return }
         DEV && console.error('uni.onSocketError:', result)
         ReadyState.set(SocketState.CLOSING)
         StrPubSub.publish('onSocketError', result)
@@ -65,9 +76,12 @@ export function implSocket(): socketTypes.IRpcSocket {
         StrPubSub.publish('onSocketOpen', result)
       })
       uni.onSocketMessage((result: socketTypes.OnSocketMessageCallbackResult) => {
+        if (isCloseForce) { return }
         StrPubSub.publish('onSocketMessage', result)
       })
 
+      isOffNetworkStatusChange = false
+      isCloseForce = false
       ReadyState.set(SocketState.CONNECTING)
       socketTask = uni.connectSocket(options)
       SocketTask.set(socketTask)
@@ -79,16 +93,53 @@ export function implSocket(): socketTypes.IRpcSocket {
       return undefined
     },
     sendSocketMessage(options: socketTypes.SendSocketMessageOptions): void {
+      if (isCloseForce) { return }
       uni.sendSocketMessage(options)
     },
     closeSocket(options: socketTypes.CloseSocketOptions): void {
       uni.closeSocket(options)
     },
+    closeSocketForce(options: socketTypes.CloseSocketOptions): void {
+      const result: socketTypes.GeneralCallbackResult = {
+        errMsg: options.reason ?? 'close force',
+      }
+      DEV && console.warn('uni.onSocketClose force:', result)
+      ReadyState.set(SocketState.CLOSED)
+      StrPubSub.publish('onSocketClose', result)
 
+      isCloseForce = true
+
+      this.closeSocket(options)
+    },
+    onNetworkStatusChange(callback: socketTypes.NetworkStatusChangeCallback): void {
+      if (onNetworkStatusChange) { return }
+      onNetworkStatusChange = (res: socketTypes.NetworkStatusChangeResult) => {
+        if (isOffNetworkStatusChange) { return }
+        DEV && console.log('uni.onNetworkStatusChange:', res)
+        callback(res)
+      }
+      uni.onNetworkStatusChange(onNetworkStatusChange)
+    },
+    offNetworkStatusChange(): void {
+      if ('offNetworkStatusChange' in uni){
+        // 兼容以后uni-app支持offNetworkStatusChange事件
+        if (onNetworkStatusChange) {
+          uni.offNetworkStatusChange(onNetworkStatusChange)
+        } else {
+          uni.offNetworkStatusChange()
+        }
+      } else {
+        isOffNetworkStatusChange = true
+      }
+
+      onNetworkStatusChange = null
+    },
+    
     onSocketMessage,
     onSocketOpen,
     onSocketError,
     onSocketClose,
+    clearSocketEvent,
   }
 
   proxySocketReadState(socket)

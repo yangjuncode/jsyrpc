@@ -10,7 +10,7 @@ export interface ConnectSocketOption {
   /**
    * 子协议数组
    */
-  protocols?: string []
+  protocols?: string[]
   /**
    * 超时时间，单位为毫秒
    */
@@ -111,52 +111,78 @@ export interface CloseSocketOptions {
   complete?: (result: GeneralCallbackResult) => void
 }
 
+
+export interface NetworkStatusChangeResult {
+  isConnected: boolean
+  // 值       说明          平台差异说明
+  // wifi     wifi网络	
+  // 2g       2g网络
+  // 3g       3g网络
+  // 4g       4g网络
+  // ethernet 有线网络      App
+  // unknown  Android下不常见的网络类型
+  // none     无网络
+  networkType: string
+}
+
+export interface NetworkStatusChangeCallback {
+  (result: NetworkStatusChangeResult): void
+}
+
 export interface SocketTask {
   /**
    * 通过 WebSocket 连接发送数据
    */
-  send(options: SendSocketMessageOptions): void
+  send (options: SendSocketMessageOptions): void
 
   /**
    * 关闭 WebSocket 连接
    */
-  close(options?: CloseSocketOptions): void
+  close (options?: CloseSocketOptions): void
 
   /**
    * 监听 WebSocket 连接打开事件
    */
-  onOpen(callback: (result: OnSocketOpenCallbackResult) => void): void
+  onOpen (callback: (result: OnSocketOpenCallbackResult) => void): void
 
   /**
    * 监听 WebSocket 连接关闭事件
    */
-  onClose(callback: (result: any) => void): void
+  onClose (callback: (result: any) => void): void
 
   /**
    * 监听 WebSocket 错误
    */
-  onError(callback: (result: GeneralCallbackResult) => void): void
+  onError (callback: (result: GeneralCallbackResult) => void): void
 
   /**
    * 监听WebSocket接受到服务器的消息事件
    */
-  onMessage(callback: (result: OnSocketMessageCallbackResult) => void): void
+  onMessage (callback: (result: OnSocketMessageCallbackResult) => void): void
 }
 
 export interface IRpcSocket {
   readyState?: number
 
-  connectSocket(options: ConnectSocketOption): SocketTask | undefined
+  connectSocket (options: ConnectSocketOption): SocketTask | undefined
 
-  sendSocketMessage(options: SendSocketMessageOptions): void
+  sendSocketMessage (options: SendSocketMessageOptions): void
 
-  onSocketMessage(callback: (result: OnSocketMessageCallbackResult) => void): void
+  onSocketMessage (callback: (result: OnSocketMessageCallbackResult) => void): void
 
-  onSocketOpen(callback: (result: OnSocketOpenCallbackResult) => void): void
+  onSocketOpen (callback: (result: OnSocketOpenCallbackResult) => void): void
 
-  onSocketError(callback: (result: GeneralCallbackResult) => void): void
+  onSocketError (callback: (result: GeneralCallbackResult) => void): void
 
-  onSocketClose(callback: (result: GeneralCallbackResult) => void): void
+  onSocketClose (callback: (result: GeneralCallbackResult) => void): void
 
-  closeSocket(options: CloseSocketOptions): void
+  closeSocket (options: CloseSocketOptions): void
+
+  closeSocketForce (options: CloseSocketOptions): void
+
+  clearSocketEvent (): void
+
+  onNetworkStatusChange (callback: NetworkStatusChangeCallback): void
+  
+  offNetworkStatusChange (callback?: NetworkStatusChangeCallback): void
 }
