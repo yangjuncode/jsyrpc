@@ -34,7 +34,9 @@ declare namespace myApp {
 
     onSocketClose(callback: (result: socketTypes.GeneralCallbackResult) => void): void;
 
-    // 移动socket监听事件
+    onNetworkStatusChange (callback: socketTypes.NetworkStatusChangeCallback): void
+
+    // 移除socket监听事件
     offSocketClose(callback?: Function): void
 
     offSocketMessage(callback?: Function): void
@@ -42,6 +44,8 @@ declare namespace myApp {
     offSocketOpen(callback?: Function): void
 
     offSocketError(callback?: Function): void
+
+    offNetworkStatusChange (callback?: socketTypes.NetworkStatusChangeCallback): void
   }
 }
 
@@ -59,6 +63,7 @@ export function implSocket(): socketTypes.IRpcSocket {
   DEV && console.log('implMySocket')
 
   let isCloseForce = false
+  let onNetworkStatusChange: socketTypes.NetworkStatusChangeCallback | null = null
 
   const socket: socketTypes.IRpcSocket = {
     connectSocket(options: socketTypes.ConnectSocketOption): socketTypes.SocketTask | undefined {
@@ -136,6 +141,22 @@ export function implSocket(): socketTypes.IRpcSocket {
 
       offSocketEvents()
       this.closeSocket(options)
+    },
+    onNetworkStatusChange(callback: socketTypes.NetworkStatusChangeCallback): void {
+      if (onNetworkStatusChange) { return }
+      onNetworkStatusChange = (res: socketTypes.NetworkStatusChangeResult) => {
+        DEV && console.log('my.onNetworkStatusChange:', res)
+        callback(res)
+      }
+      my.onNetworkStatusChange(onNetworkStatusChange)
+    },
+    offNetworkStatusChange(): void {
+      if (onNetworkStatusChange) { 
+        my.offNetworkStatusChange(onNetworkStatusChange)
+      } else {
+        my.offNetworkStatusChange()
+      }
+      onNetworkStatusChange = null
     },
 
     onSocketMessage,

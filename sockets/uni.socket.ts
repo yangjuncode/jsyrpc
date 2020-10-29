@@ -31,7 +31,11 @@ declare namespace uniApp {
     closeSocket(options: socketTypes.CloseSocketOptions): void;
 
     onSocketClose(callback: (result: socketTypes.GeneralCallbackResult) => void): void;
-  }
+ 
+    onNetworkStatusChange (callback: socketTypes.NetworkStatusChangeCallback): void
+    
+    offNetworkStatusChange (callback?: socketTypes.NetworkStatusChangeCallback): void
+ }
 }
 
 declare const uni: uniApp.Uni
@@ -40,7 +44,9 @@ declare const uni: uniApp.Uni
 export function implSocket(): socketTypes.IRpcSocket {
   DEV && console.log('implUniSocket')
 
-  let  isCloseForce = false
+  let isCloseForce = false
+  let onNetworkStatusChange: socketTypes.NetworkStatusChangeCallback | null = null
+  let isOffNetworkStatusChange = false
 
   const socket: socketTypes.IRpcSocket = {
     connectSocket(options: socketTypes.ConnectSocketOption): socketTypes.SocketTask | undefined {
@@ -74,6 +80,7 @@ export function implSocket(): socketTypes.IRpcSocket {
         StrPubSub.publish('onSocketMessage', result)
       })
 
+      isOffNetworkStatusChange = false
       isCloseForce = false
       ReadyState.set(SocketState.CONNECTING)
       socketTask = uni.connectSocket(options)
@@ -104,7 +111,30 @@ export function implSocket(): socketTypes.IRpcSocket {
 
       this.closeSocket(options)
     },
+    onNetworkStatusChange(callback: socketTypes.NetworkStatusChangeCallback): void {
+      if (onNetworkStatusChange) { return }
+      onNetworkStatusChange = (res: socketTypes.NetworkStatusChangeResult) => {
+        if (isOffNetworkStatusChange) { return }
+        DEV && console.log('uni.onNetworkStatusChange:', res)
+        callback(res)
+      }
+      uni.onNetworkStatusChange(onNetworkStatusChange)
+    },
+    offNetworkStatusChange(): void {
+      if ('offNetworkStatusChange' in uni){
+        // 兼容以后uni-app支持offNetworkStatusChange事件
+        if (onNetworkStatusChange) {
+          uni.offNetworkStatusChange(onNetworkStatusChange)
+        } else {
+          uni.offNetworkStatusChange()
+        }
+      } else {
+        isOffNetworkStatusChange = true
+      }
 
+      onNetworkStatusChange = null
+    },
+    
     onSocketMessage,
     onSocketOpen,
     onSocketError,

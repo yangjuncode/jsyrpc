@@ -40,7 +40,11 @@ declare namespace wxApi {
     onSocketClose(callback: (result: SocketTaskOnCloseCallbackResult) => void): void
 
     closeSocket(options: socketTypes.CloseSocketOptions): Promise<socketTypes.CloseSocketOptions>
-  }
+
+    onNetworkStatusChange (callback: socketTypes.NetworkStatusChangeCallback): void
+
+    offNetworkStatusChange (callback?: socketTypes.NetworkStatusChangeCallback): void
+ }
 }
 
 declare const wx: wxApi.Wx
@@ -50,6 +54,7 @@ export function implSocket(): socketTypes.IRpcSocket {
   DEV && console.log('implWxSocket')
 
   let isCloseForce = false
+  let onNetworkStatusChange: socketTypes.NetworkStatusChangeCallback | null = null
 
   const socket: socketTypes.IRpcSocket = {
     connectSocket(options: socketTypes.ConnectSocketOption): socketTypes.SocketTask | undefined {
@@ -119,7 +124,23 @@ export function implSocket(): socketTypes.IRpcSocket {
 
       this.closeSocket(options)
     },
-
+    onNetworkStatusChange(callback: socketTypes.NetworkStatusChangeCallback): void {
+      if (onNetworkStatusChange) { return }
+      onNetworkStatusChange = (res: socketTypes.NetworkStatusChangeResult) => {
+        DEV && console.log('wx.onNetworkStatusChange:', res)
+        callback(res)
+      }
+      wx.onNetworkStatusChange(onNetworkStatusChange)
+    },
+    offNetworkStatusChange(): void {
+      if (onNetworkStatusChange) {
+        wx.offNetworkStatusChange(onNetworkStatusChange)
+      } else {
+        wx.offNetworkStatusChange()
+      }
+      onNetworkStatusChange = null
+    },
+    
     onSocketMessage,
     onSocketOpen,
     onSocketError,

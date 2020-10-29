@@ -22,6 +22,7 @@ export function implSocket(): socketTypes.IRpcSocket {
   DEV && console.log('implWebSocket')
   let ws: WebSocket | null = null
   let isCloseForce = false
+  let onNetworkStatusChange: (() => void) | null = null
 
   const execWsCmd = (fn: (ws: WebSocket) => void, options: callbackOptions) => {
     const result: socketTypes.GeneralCallbackResult = {
@@ -130,6 +131,34 @@ export function implSocket(): socketTypes.IRpcSocket {
         ws.onclose = null
       }
       this.closeSocket(options)
+    },
+    onNetworkStatusChange(callback: socketTypes.NetworkStatusChangeCallback): void {
+      if (onNetworkStatusChange) { return }
+
+      const getNetworkType: () => string = () => {
+        // @ts-ignore
+        const connection = navigator.connection
+        const unknown = 'unknown'
+        if (!connection) { return unknown }
+        return connection.effectiveType || unknown
+      }
+      onNetworkStatusChange = () => {
+        const res: socketTypes.NetworkStatusChangeResult = {
+          isConnected: navigator.onLine,
+          networkType: getNetworkType()
+        }
+        DEV && console.log('ws.onNetworkStatusChange:', res)
+        callback(res)
+      }
+
+      window.addEventListener('online', onNetworkStatusChange)
+      window.addEventListener('offline', onNetworkStatusChange)
+    },
+    offNetworkStatusChange(): void {
+      if (!onNetworkStatusChange) { return }
+      window.removeEventListener('online', onNetworkStatusChange)
+      window.removeEventListener('offline', onNetworkStatusChange)
+      onNetworkStatusChange = null
     },
 
     onSocketMessage,
