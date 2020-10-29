@@ -1,6 +1,12 @@
 import * as socketTypes from './socket.types'
 import { StrPubSub } from 'ypubsub'
 
+export const SocketEvents = [
+  'onSocketClose', 'onSocketError', 'onSocketOpen', 'onSocketMessage',
+]
+
+export const DEV = process.env.NODE_ENV === 'development'
+
 export function emptyFn() {/* Empty Function */}
 
 export function onSocketMessage(callback: (result: socketTypes.OnSocketMessageCallbackResult) => void): void {
@@ -19,18 +25,18 @@ export function onSocketClose(callback: (result: socketTypes.GeneralCallbackResu
   StrPubSub.subscribe('onSocketClose', callback)
 }
 
+export function clearSocketEvent() :void {
+  SocketEvents.forEach(event => {
+    StrPubSub.unsubscribe(event)
+  })
+}
+
 export enum SocketState {
   CONNECTING = 0,
   OPEN,
   CLOSING,
   CLOSED,
 }
-
-export const SocketEvents = [
-  'onSocketClose', 'onSocketError', 'onSocketOpen', 'onSocketMessage',
-]
-
-export const DEV = process.env.NODE_ENV === 'development'
 
 let readyState: SocketState | null = null
 export const ReadyState = {
@@ -68,9 +74,6 @@ export function proxySocketReadState(socket: socketTypes.IRpcSocket): void {
 export function clearSocket() {
   socketTask = undefined
   readyState = null
-  SocketEvents.forEach(event => {
-    StrPubSub.unsubscribe(event)
-  })
 }
 
 export function createSocketTask(ctx: socketTypes.IRpcSocket): socketTypes.SocketTask {

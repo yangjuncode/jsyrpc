@@ -159,4 +159,8 @@ export interface IRpcSocket {
   onSocketClose(callback: (result: GeneralCallbackResult) => void): void
 
   closeSocket(options: CloseSocketOptions): void
+
+  closeSocketForce (options: CloseSocketOptions): void
+
+  clearSocketEvent(): void
 }

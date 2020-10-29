@@ -8,6 +8,7 @@ import {
   proxySocketReadState,
   clearSocket,
   createSocketTask,
+  clearSocketEvent,
   SocketState,
   DEV,
   SocketTask,
@@ -17,9 +18,11 @@ import {
 type callbackOptions = socketTypes.SendSocketMessageOptions | socketTypes.CloseSocketOptions
 
 // 处理WebSocket接口
-export function implSocket(): socketTypes.IRpcSocket {
+export function implSocket (): socketTypes.IRpcSocket {
   DEV && console.log('implWebSocket')
   let ws: WebSocket | null = null
+  let isCloseForce = false
+
   const execWsCmd = (fn: (ws: WebSocket) => void, options: callbackOptions) => {
     const result: socketTypes.GeneralCallbackResult = {
       errMsg: '',
@@ -44,20 +47,24 @@ export function implSocket(): socketTypes.IRpcSocket {
   }
 
   const socket: socketTypes.IRpcSocket = {
-    connectSocket(options: socketTypes.ConnectSocketOption): socketTypes.SocketTask | undefined {
+    connectSocket (options: socketTypes.ConnectSocketOption): socketTypes.SocketTask | undefined {
       if (ws) {
+        ws.onerror = null
+        ws.onclose = null
         ws.close(1000)
         ws = null
         clearSocket()
       }
 
       // 初始化WebSocket
+      isCloseForce = false
       ReadyState.set(SocketState.CONNECTING)
       ws = new WebSocket(options.url)
       ws.binaryType = 'arraybuffer'
 
       // 处理事件监听
       ws.onclose = (ev: CloseEvent) => {
+        if (isCloseForce) { return }
         DEV && console.warn('ws.onclose:', ev)
         ReadyState.set(SocketState.CLOSED)
         const result: socketTypes.GeneralCallbackResult = {
@@ -66,6 +73,7 @@ export function implSocket(): socketTypes.IRpcSocket {
         StrPubSub.publish('onSocketClose', result)
       }
       ws.onerror = (ev: Event) => {
+        if (isCloseForce) { return }
         DEV && console.error('ws.onerror:', ev)
         ReadyState.set(SocketState.CLOSING)
         const result: socketTypes.GeneralCallbackResult = {
@@ -80,6 +88,7 @@ export function implSocket(): socketTypes.IRpcSocket {
         StrPubSub.publish('onSocketOpen', result)
       }
       ws.onmessage = (ev: MessageEvent) => {
+        if (isCloseForce) { return }
         const result: socketTypes.OnSocketMessageCallbackResult = {
           data: ev.data,
         }
@@ -95,21 +104,39 @@ export function implSocket(): socketTypes.IRpcSocket {
 
       return undefined
     },
-    sendSocketMessage(options: socketTypes.SendSocketMessageOptions): void {
+    sendSocketMessage (options: socketTypes.SendSocketMessageOptions): void {
+      if (isCloseForce) { return }
       execWsCmd((ws: WebSocket) => {
         ws.send(options.data)
       }, options)
     },
-    closeSocket(options: socketTypes.CloseSocketOptions): void {
+    closeSocket (options: socketTypes.CloseSocketOptions): void {
       execWsCmd((ws: WebSocket) => {
         ws.close(options.code, options.reason)
       }, options)
+    },
+    closeSocketForce (options: socketTypes.CloseSocketOptions): void {
+      if (ws) {
+        ReadyState.set(SocketState.CLOSED)
+        const result: socketTypes.GeneralCallbackResult = {
+          errMsg: options.reason ?? 'close force',
+        }
+        DEV && console.warn('ws.onclose force:', result)
+        StrPubSub.publish('onSocketClose', result)
+
+        isCloseForce = true
+
+        ws.onerror = null
+        ws.onclose = null
+      }
+      this.closeSocket(options)
     },
 
     onSocketMessage,
     onSocketOpen,
     onSocketError,
     onSocketClose,
+    clearSocketEvent,
   }
 
   proxySocketReadState(socket)
