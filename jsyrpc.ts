@@ -12,6 +12,7 @@ import { rpcSocket } from './utils/socket'
 import { SocketState } from './utils/common'
 import {
   GeneralCallbackResult,
+  NetworkStatusChangeResult,
   OnSocketMessageCallbackResult,
   OnSocketOpenCallbackResult,
 } from './utils/socket.types'
@@ -358,6 +359,12 @@ function customClearTimeout(handle?: number | undefined | NodeJS.Timeout): void 
   globalThis.clearTimeout(handle)
 }
 
+enum SocketCloseCode {
+  Unknown = 4000,
+  PingTimeout,
+  Offline,
+}
+
 export class TrpcCon implements IrpcCon {
   Sid: Uint8Array = new Uint8Array()
   wsUrl = ''
@@ -402,9 +409,36 @@ export class TrpcCon implements IrpcCon {
       this.onWsMsg(result)
     })
 
+    rpcSocket.onNetworkStatusChange(this._onNetworkStatusChange)
+
     rpcSocket.connectSocket({
       url,
     })
+  }
+
+  _online(){
+    // 网络重新连接后，将重连定时器重置5s，并重新连接
+    this._connectTimeout = 5000
+    this.initWsCon(this.wsUrl)
+  }
+  
+  _offline() {
+    // 网络断开，强制关闭socket连接
+    this._isCloseForce = true
+    rpcSocket.closeSocketForce({
+      code: SocketCloseCode.Offline,
+      reason: 'offline'
+    })
+  }
+  
+  _onNetworkStatusChange(res: NetworkStatusChangeResult){
+    if (res.isConnected) {
+      // online
+      this._online()
+    } else {
+      // offline
+      this._offline()
+    }
   }
 
   isWsConnected(): boolean {
@@ -612,6 +646,7 @@ export class TrpcCon implements IrpcCon {
     StrPubSub.publish('onclose', ev)
 
     customClearTimeout(this.pingId)
+    rpcSocket.offNetworkStatusChange()
 
     globalThis.setTimeout(() => {
       if (this.isWsConnected()) {
@@ -626,7 +661,7 @@ export class TrpcCon implements IrpcCon {
     StrPubSub.publish('onopen', ev)
     this.autoPing()
     this._connectTimeout = 5000
-    this.isCloseForce = false
+    this._isCloseForce = false
   }
 
   _NatsSubscribeAgain(subscribeList: Map<string, Function[]>) {
@@ -751,7 +786,7 @@ export class TrpcCon implements IrpcCon {
     this.sendRpc(resMsg)
   }
 
-  isCloseForce = false
+  _isCloseForce = false
 
   ping(pongFn?: IPong): void {
     let rpc = new yrpcmsg.Ymsg()
@@ -763,10 +798,10 @@ export class TrpcCon implements IrpcCon {
     let timeoutId: number | NodeJS.Timeout = globalThis.setTimeout(() => {
       IntPubSub.unsubscribe(rpc.Cid)
       // ping不通，表示连接有问题，主动关闭webSocket
-      if (!this.isCloseForce) {
-        this.isCloseForce = true
+      if (!this._isCloseForce) {
+        this._isCloseForce = true
         rpcSocket.closeSocketForce({
-          code: 4001,
+          code: SocketCloseCode.PingTimeout,
           reason: 'ping timeout'
         })
       }
