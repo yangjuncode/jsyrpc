@@ -18,7 +18,7 @@ import {
 type callbackOptions = socketTypes.SendSocketMessageOptions | socketTypes.CloseSocketOptions
 
 // 处理WebSocket接口
-export function implSocket (): socketTypes.IRpcSocket {
+export function implSocket(): socketTypes.IRpcSocket {
   DEV && console.log('implWebSocket')
   let ws: WebSocket | null = null
   let isCloseForce = false
@@ -47,7 +47,7 @@ export function implSocket (): socketTypes.IRpcSocket {
   }
 
   const socket: socketTypes.IRpcSocket = {
-    connectSocket (options: socketTypes.ConnectSocketOption): socketTypes.SocketTask | undefined {
+    connectSocket(options: socketTypes.ConnectSocketOption): socketTypes.SocketTask | undefined {
       if (ws) {
         ws.onerror = null
         ws.onclose = null
@@ -104,18 +104,18 @@ export function implSocket (): socketTypes.IRpcSocket {
 
       return undefined
     },
-    sendSocketMessage (options: socketTypes.SendSocketMessageOptions): void {
+    sendSocketMessage(options: socketTypes.SendSocketMessageOptions): void {
       if (isCloseForce) { return }
       execWsCmd((ws: WebSocket) => {
         ws.send(options.data)
       }, options)
     },
-    closeSocket (options: socketTypes.CloseSocketOptions): void {
+    closeSocket(options: socketTypes.CloseSocketOptions): void {
       execWsCmd((ws: WebSocket) => {
         ws.close(options.code, options.reason)
       }, options)
     },
-    closeSocketForce (options: socketTypes.CloseSocketOptions): void {
+    closeSocketForce(options: socketTypes.CloseSocketOptions): void {
       if (ws) {
         ReadyState.set(SocketState.CLOSED)
         const result: socketTypes.GeneralCallbackResult = {

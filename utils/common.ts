@@ -65,7 +65,7 @@ export function proxySocketReadState(socket: socketTypes.IRpcSocket): void {
       return readyState
     },
     set(v: any) {
-      DEV && console.warn('[readyState] is readonly!')
+      DEV && console.warn('[readyState] is readonly!', v)
     },
   })
 }

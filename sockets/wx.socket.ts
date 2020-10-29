@@ -107,7 +107,7 @@ export function implSocket(): socketTypes.IRpcSocket {
     closeSocket(options: socketTypes.CloseSocketOptions): void {
       wx.closeSocket(options).then(emptyFn)
     },
-    closeSocketForce (options: socketTypes.CloseSocketOptions): void {
+    closeSocketForce(options: socketTypes.CloseSocketOptions): void {
       const result: socketTypes.GeneralCallbackResult = {
         errMsg: options.reason ?? 'close force',
       }
