@@ -17,11 +17,18 @@
     "yrpcmsg": "^1.2.7"
   },
   "scripts": {
-    "build": "tsc "
+    "build": "tsc ",
+    "lint": "eslint --fix --ext .js,.ts --ignore-path .gitignore --ignore-path .eslintignore ./sockets ./utils ./jsyrpc.ts"
   },
   "devDependencies": {
     "@types/core-js": "^2.5.4",
     "@types/pako": "^1.0.1",
-    "typescript": "^3.7.5"
+    "typescript": "^3.7.5",
+    "babel-eslint": "^10.1.0",
+    "eslint": "^7.9.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-loader": "^4.0.2",
+    "@typescript-eslint/eslint-plugin": "^4.2.0",
+    "@typescript-eslint/parser": "^4.2.0"
   }
 }
