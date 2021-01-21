@@ -859,7 +859,7 @@ export class TrpcCon implements IrpcCon {
     }
     let timeoutId: number | NodeJS.Timeout = globalThis.setTimeout(() => {
       IntPubSub.unsubscribe(rpc.Cid)
-      callOpt?.OnTimeout?.()
+      callOpt?.OnTimeout?.('rpc timeout:' + api)
     }, callOpt.timeout * 1000)
 
     const subscribeCb = (resRpc: yrpcmsg.Ymsg) => {
