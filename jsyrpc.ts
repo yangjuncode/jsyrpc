@@ -326,7 +326,9 @@ export class TRpcStream {
     if (nowTime - this.LastRecvTime > _timeout && nowTime - this.LastSendTime > _timeout) {
       this.clearCall()
       this.callOpt.OnTimeout?.(
-        this.api + ',nowTime:' + nowTime + ',LastSendTime:' + this.LastSendTime + ',LastRecvTime:', this.LastRecvTime)
+        'rpc timeout:' + this.api + ',nowTime:' + nowTime + ',LastSendTime:' + this.LastSendTime + ',LastRecvTime:',
+        this.LastRecvTime,
+      )
     }
   }
 }
