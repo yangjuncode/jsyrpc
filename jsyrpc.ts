@@ -324,10 +324,16 @@ export class TRpcStream {
     const nowTime = Date.now()
 
     if (nowTime - this.LastRecvTime > _timeout && nowTime - this.LastSendTime > _timeout) {
+      this.cancel()
       this.clearCall()
+
+      const nowTimeFmt = new Date(nowTime).toISOString().slice(0, 10)
+      const lastRecvTimeFmt = new Date(this.LastRecvTime).toISOString().slice(0, 10)
+      const lastSendTimeFmt = new Date(this.LastSendTime).toISOString().slice(0, 10)
+
       this.callOpt.OnTimeout?.(
-        'rpc timeout:' + this.api + ',nowTime:' + nowTime + ',LastSendTime:' + this.LastSendTime + ',LastRecvTime:',
-        this.LastRecvTime,
+        'rpc timeout:' + this.api + ',nowTime:' + nowTimeFmt + ',LastSendTime:' + lastSendTimeFmt + ',LastRecvTime:',
+        lastRecvTimeFmt,
       )
     }
   }
