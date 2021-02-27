@@ -319,10 +319,24 @@ export class TRpcStream {
   }
 
   intervalCheck() {
-    // let nowTime = Date.now()
-    //todo intervalCheck
-  }
+    //this.callOpt.timeout second time out
+    const _timeout = this.callOpt.timeout as number * 1000
+    const nowTime = Date.now()
 
+    if (nowTime - this.LastRecvTime > _timeout && nowTime - this.LastSendTime > _timeout) {
+      this.cancel()
+      this.clearCall()
+
+      const nowTimeFmt = new Date(nowTime).toISOString().slice(0, 10)
+      const lastRecvTimeFmt = new Date(this.LastRecvTime).toISOString().slice(0, 10)
+      const lastSendTimeFmt = new Date(this.LastSendTime).toISOString().slice(0, 10)
+
+      this.callOpt.OnTimeout?.(
+        'rpc timeout:' + this.api + ',nowTime:' + nowTimeFmt + ',LastSendTime:' + lastSendTimeFmt + ',LastRecvTime:',
+        lastRecvTimeFmt,
+      )
+    }
+  }
 }
 
 export interface IrpcCon {
@@ -416,22 +430,22 @@ export class TrpcCon implements IrpcCon {
     })
   }
 
-  _online(){
+  _online() {
     // 网络重新连接后，将重连定时器重置5s，并重新连接
     this._connectTimeout = 5000
     this.initWsCon(this.wsUrl)
   }
-  
+
   _offline() {
     // 网络断开，强制关闭socket连接
     this._isCloseForce = true
     rpcSocket.closeSocketForce({
       code: SocketCloseCode.Offline,
-      reason: 'offline'
+      reason: 'offline',
     })
   }
-  
-  _onNetworkStatusChange(res: NetworkStatusChangeResult){
+
+  _onNetworkStatusChange(res: NetworkStatusChangeResult) {
     if (res.isConnected) {
       // online
       this._online()
@@ -802,7 +816,7 @@ export class TrpcCon implements IrpcCon {
         this._isCloseForce = true
         rpcSocket.closeSocketForce({
           code: SocketCloseCode.PingTimeout,
-          reason: 'ping timeout'
+          reason: 'ping timeout',
         })
       }
     }, 5 * 1000)
