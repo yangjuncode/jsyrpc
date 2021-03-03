@@ -17,6 +17,7 @@ import {
   OnSocketOpenCallbackResult,
 } from './utils/socket.types'
 import 'core-js/features/global-this'
+import { Dayjs } from 'dayjs'
 
 function isCallbackInMap(key: string, callBack: Function, _map: Map<string, Function[]>): boolean {
   let mapItem = _map.get(key)
@@ -327,9 +328,9 @@ export class TRpcStream {
       this.cancel()
       this.clearCall()
 
-      const nowTimeFmt = new Date(nowTime).toISOString().slice(0, 10)
-      const lastRecvTimeFmt = new Date(this.LastRecvTime).toISOString().slice(0, 10)
-      const lastSendTimeFmt = new Date(this.LastSendTime).toISOString().slice(0, 10)
+      const nowTimeFmt = new Dayjs(nowTime).format('YYYY-MM-DD HH:mm:ss')
+      const lastRecvTimeFmt = new Dayjs(this.LastRecvTime).format('YYYY-MM-DD HH:mm:ss')
+      const lastSendTimeFmt = new Dayjs(this.LastSendTime).format('YYYY-MM-DD HH:mm:ss')
 
       this.callOpt.OnTimeout?.(
         'rpc timeout:' + this.api + ',nowTime:' + nowTimeFmt + ',LastSendTime:' + lastSendTimeFmt + ',LastRecvTime:',
