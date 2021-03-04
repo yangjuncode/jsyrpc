@@ -3,10 +3,6 @@ import pako from 'pako'
 import { IntPubSub, StrPubSub } from 'ypubsub'
 import { Writer } from 'protobufjs'
 import base64 from '@protobufjs/base64'
-import IMeta = yrpcmsg.IMeta
-import IGrpcMeta = yrpcmsg.IGrpcMeta
-import GrpcMeta = yrpcmsg.GrpcMeta
-import UnixTime = yrpcmsg.UnixTime
 import { str2uint8array } from 'yrpcjsutil'
 import { rpcSocket } from './utils/socket'
 import { SocketState } from './utils/common'
@@ -17,7 +13,11 @@ import {
   OnSocketOpenCallbackResult,
 } from './utils/socket.types'
 import 'core-js/features/global-this'
-import { Dayjs } from 'dayjs'
+import dayjs from 'dayjs'
+import IMeta = yrpcmsg.IMeta
+import IGrpcMeta = yrpcmsg.IGrpcMeta
+import GrpcMeta = yrpcmsg.GrpcMeta
+import UnixTime = yrpcmsg.UnixTime
 
 function isCallbackInMap(key: string, callBack: Function, _map: Map<string, Function[]>): boolean {
   let mapItem = _map.get(key)
@@ -328,9 +328,9 @@ export class TRpcStream {
       this.cancel()
       this.clearCall()
 
-      const nowTimeFmt = new Dayjs(nowTime).format('YYYY-MM-DD HH:mm:ss')
-      const lastRecvTimeFmt = new Dayjs(this.LastRecvTime).format('YYYY-MM-DD HH:mm:ss')
-      const lastSendTimeFmt = new Dayjs(this.LastSendTime).format('YYYY-MM-DD HH:mm:ss')
+      const nowTimeFmt = dayjs(nowTime).format('YYYY-MM-DD HH:mm:ss')
+      const lastRecvTimeFmt = dayjs(this.LastRecvTime).format('YYYY-MM-DD HH:mm:ss')
+      const lastSendTimeFmt = dayjs(this.LastSendTime).format('YYYY-MM-DD HH:mm:ss')
 
       this.callOpt.OnTimeout?.(
         'rpc timeout:' + this.api + ',nowTime:' + nowTimeFmt + ',LastSendTime:' + lastSendTimeFmt + ',LastRecvTime:',
