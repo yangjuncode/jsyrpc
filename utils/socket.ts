@@ -22,7 +22,6 @@ function getRpcSocket(): socketTypes.IRpcSocket {
   try {
     //  const socketModule = require(`../sockets/${env.toLowerCase()}.socket`)
     const socketModule = modules[env.toLowerCase() + '_socket']
-    console.log('jsyrpc socketModule:', socketModule)
     return socketModule.implSocket()
   } catch (e) {
     DEV && console.error('getRpcSocket:', e)
