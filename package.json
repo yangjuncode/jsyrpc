@@ -1,6 +1,6 @@
 {
   "name": "jsyrpc",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "js lib for yrpc",
   "main": "dist/jsyrpc.js",
   "types": "dist/jsyrpc.d.ts",
@@ -11,7 +11,7 @@
     "@protobufjs/base64": "^1.1.2",
     "core-js": "^3.6.5",
     "dayjs": "^1.10.4",
-    "pako": "^1.0.10",
+    "pako": "^2.0.4",
     "protobufjs": "^6.8.8",
     "ypubsub": "^1.0.15",
     "yrpcjsutil": "^1.0.0",
@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@types/core-js": "^2.5.4",
-    "@types/pako": "^1.0.1",
+    "@types/pako": "^1.0.3",
     "@typescript-eslint/eslint-plugin": "^4.2.0",
     "@typescript-eslint/parser": "^4.2.0",
     "babel-eslint": "^10.1.0",
