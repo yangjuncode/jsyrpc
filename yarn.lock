@@ -1066,7 +1066,7 @@ minimatch@^3.0.4:
   dependencies:
     brace-expansion "^1.1.7"
 
-minimist@^1.2.6:
+minimist@^1.2.5:
   version "1.2.6"
   resolved "https://registry.npmmirror.com/minimist/-/minimist-1.2.6.tgz#8637a5b759ea0d6e98702cfb3a9283323c93af44"
   integrity sha512-Jsjnk4bw3YJqYzbdyBiNsPWHPfO++UGG749Cxs6peCu5Xg4nrena6OVxOYxrQTqww0Jmwt+Ref8rggumkTLz9Q==
@@ -1183,10 +1183,10 @@ progress@^2.0.0:
   resolved "https://registry.npmmirror.com/progress/-/progress-2.0.3.tgz#7e8cf8d8f5b8f239c1bc68beb4eb78567d572ef8"
   integrity sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA==
 
-protobufjs@^6.8.8:
-  version "6.11.2"
-  resolved "https://registry.nlark.com/protobufjs/download/protobufjs-6.11.2.tgz#de39fabd4ed32beaa08e9bb1e30d08544c1edf8b"
-  integrity sha1-3jn6vU7TK+qgjpux4w0IVEwe34s=
+protobufjs@^6.11.3:
+  version "6.11.3"
+  resolved "https://registry.npmmirror.com/protobufjs/-/protobufjs-6.11.3.tgz#637a527205a35caa4f3e2a9a4a13ddffe0e7af74"
+  integrity sha512-xL96WDdCZYdU7Slin569tFX712BxsxslWwAfAhCYjQKGTq7dAU91Lomy6nLLhh/dyGhk/YH4TwTSRxTzhuHyZg==
   dependencies:
     "@protobufjs/aspromise" "^1.1.2"
     "@protobufjs/base64" "^1.1.2"
@@ -1454,9 +1454,9 @@ yrpcjsutil@^1.0.0:
   dependencies:
     "@protobufjs/utf8" "^1.1.0"
 
-yrpcmsg@^1.2.7:
-  version "1.2.7"
-  resolved "https://registry.nlark.com/yrpcmsg/download/yrpcmsg-1.2.7.tgz#dfebc639eed3bb666067b0229dab5874e6776bc3"
-  integrity sha1-3+vGOe7Tu2ZgZ7AinatYdOZ3a8M=
+yrpcmsg@^1.2.8:
+  version "1.2.8"
+  resolved "https://registry.yarnpkg.com/yrpcmsg/-/yrpcmsg-1.2.8.tgz#9c12e73df4162529ec3e04696cae63113bdf3637"
+  integrity sha512-VXAXw6cLRIMmZikxbDHot3jlI/f7HqoU1AHwbZZE1ZRh0+SOl8bKDP+wscOpS8LwIe2VkMozfNGSImyATNGe9g==
   dependencies:
-    protobufjs "^6.8.8"
+    protobufjs "^6.11.3"
