@@ -1,6 +1,6 @@
 {
   "name": "jsyrpc",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "js lib for yrpc",
   "main": "dist/jsyrpc.js",
   "types": "dist/jsyrpc.d.ts",
@@ -9,13 +9,13 @@
   "license": "MIT",
   "dependencies": {
     "@protobufjs/base64": "^1.1.2",
-    "core-js": "^3.6.5",
-    "dayjs": "^1.10.4",
-    "pako": "^2.0.4",
-    "protobufjs": "^6.11.3",
+    "core-js": "^3.32.2",
+    "dayjs": "^1.11.9",
+    "pako": "^2.1.0",
+    "protobufjs": "^7.2.5",
     "ypubsub": "^1.0.15",
     "yrpcjsutil": "^1.0.0",
-    "yrpcmsg": "^1.2.8"
+    "yrpcmsg": "1.2.10"
   },
   "scripts": {
     "build": "tsc ",
@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@types/core-js": "^2.5.4",
-    "@types/pako": "^1.0.3",
+    "@types/pako": "^2.0.0",
     "@typescript-eslint/eslint-plugin": "^4.2.0",
     "@typescript-eslint/parser": "^4.2.0",
     "babel-eslint": "^10.1.0",
