@@ -38,8 +38,9 @@ export function implSocket(): socketTypes.IRpcSocket {
       fn(ws)
       result.errMsg = 'success'
       options.success?.(result)
-    } catch (e) {
-      result.errMsg = 'fail:' + e.toString()
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e)
+      result.errMsg = 'fail:' + errMsg
       options.fail?.(result)
     } finally {
       result.errMsg = 'complete'

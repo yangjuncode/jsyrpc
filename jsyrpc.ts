@@ -151,7 +151,7 @@ export class TRpcStream {
   private newNo = 0
   LastSendTime: number = Date.now()
   LastRecvTime: number = Date.now()
-  private intervalTmrId: number | NodeJS.Timeout = -1
+  private intervalTmrId: ReturnType<typeof setInterval> | null = null
 
   //streamType 3:client 7:server 8:bidi
   constructor(api: string, v: number, streamType: number, reqType: any, resType: any, callOpt?: ICallOption) {
@@ -181,9 +181,9 @@ export class TRpcStream {
 
   clearCall() {
     IntPubSub.unsubscribe(this.cid)
-    if (this.intervalTmrId >= 0) {
+    if (this.intervalTmrId !== null) {
       customClearInterval(this.intervalTmrId)
-      this.intervalTmrId = -1
+      this.intervalTmrId = null
     }
   }
 
@@ -495,7 +495,14 @@ export class TrpcCon implements IrpcCon {
       return false
     }
 
-    rpcSocket.sendSocketMessage({ data: rpcData })
+    const arrayCopy = rpcData.slice()
+    const arrayBuffer = arrayCopy.buffer
+
+    if (!(arrayBuffer instanceof ArrayBuffer)) {
+      throw new Error('Unsupported buffer type for RPC payload')
+    }
+
+    rpcSocket.sendSocketMessage({ data: arrayBuffer })
     this.LastSendTime = Date.now()
 
     return true
